@@ -1,0 +1,8 @@
+
+#ifndef THERMOSTAT_PINOUT_H_
+#define THERMOSTAT_PINOUT_H_
+
+#define PIN_DHT_TEMP_SENSOR         9
+
+
+#endif /* THERMOSTAT_PINOUT_H_ */
