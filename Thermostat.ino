@@ -1,4 +1,3 @@
-
 // the is the INO sketch
 
 #include <ZUNO_legacy_channels.h>
@@ -37,11 +36,11 @@ ThermostatClass THERM(&AUTOPID);
 void setup() {
     MY_SERIAL.begin(115200);
     MY_SERIAL.println("\n **** Thermostat is starting... ****\n");
-    THERM.Loop();
 }
 
 void loop() {
-    delay(500);
+    THERM.Loop();
+    delay(SAMPLE_TIME);
 }
 
 /**
