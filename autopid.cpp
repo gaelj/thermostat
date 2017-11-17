@@ -1,30 +1,25 @@
 #include "autopid.h"
 
 
-AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune): myPID(pid), aTune(atune) {
+AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings): myPID(pid), aTune(atune), SETTINGS(settings) { }
+
+void AutoPidClass::ApplySettings(float* Input, float* Output, float* Setpoint, float WindowSize, unsigned long sampleTime) {
+    Serial.println("Load PID settings");
     ATuneModeRemember = 2;
-
-    kp = SETTINGS.TheSettings.Kp;
-    ki = SETTINGS.TheSettings.Ki;
-    kd = SETTINGS.TheSettings.Kd;
-    aTuneStep = SETTINGS.TheSettings.ATuneStep;
-    aTuneNoise = SETTINGS.TheSettings.ATuneNoise;
-    aTuneStartValue = SETTINGS.TheSettings.ATuneStartValue;
-    aTuneLookBack = SETTINGS.TheSettings.ATuneLookBack;
-
     tuning = false;
-}
+    
+    kd = SETTINGS->TheSettings.Kd;
+    kp = SETTINGS->TheSettings.Kp;
+    ki = SETTINGS->TheSettings.Ki;
+    aTuneStep = SETTINGS->TheSettings.ATuneStep;
+    aTuneNoise = SETTINGS->TheSettings.ATuneNoise;
+    aTuneLookBack = SETTINGS->TheSettings.ATuneLookBack;
+    aTuneStartValue = SETTINGS->TheSettings.ATuneStartValue;
 
-void AutoPidClass::SetPointers(float* Input, float* Output, float* Setpoint, float WindowSize, unsigned long sampleTime) {
-    //tell the PID to range between 0 and the full window size
-    myPID->SetOutputLimits(0, WindowSize);
-    myPID->SetSampleTime(sampleTime); //sample time in minutes
-    myPID->Create(Input, Output, Setpoint, kp, ki, kd, P_ON_E, DIRECT);
+    //Tell the PID to range between 0 and the full window size
+    myPID->Create(Input, Output, Setpoint, kp, ki, kd, P_ON_E, DIRECT, 0, WindowSize, sampleTime);
     aTune->Create(Input, Output);
-    Setup();
-}
 
-void AutoPidClass::Setup() {
     //Setup the pid 
     myPID->SetMode(AUTOMATIC);
 
@@ -92,7 +87,7 @@ void AutoPidClass::Loop() {
             ki = aTune->GetKi();
             kp = aTune->GetKp();
             kd = aTune->GetKd();
-            myPID->SetTunings(kp, ki, kd);
+            myPID->SetTunings(kp, ki, kd, myPID->pOn);
             AutoTuneHelper(false);
         }
     }

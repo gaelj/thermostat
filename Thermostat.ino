@@ -9,6 +9,7 @@
 #include <PID_AutoTune_v0.h>
 
 #include "thermo_control.h"
+#include "settings.h"
 
 // For some cases use UART (Serial0/Serial1)
 // It's a most comfortable way for debugging
@@ -28,17 +29,22 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(DesiredTemperatureGetter, DesiredTemp
                     ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter),
                     ZUNO_SWITCH_BINARY(BoilerGetter, BoilerSetter));
 
-PID pid;
+SettingsClass SETTINGS;
+PID pid(&SETTINGS);
 PID_ATune atune;
-AutoPidClass AUTOPID(&pid, &atune);
-ThermostatClass THERM(&AUTOPID);
+AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
+ThermostatClass THERM(&AUTOPID, &SETTINGS);
 
 void setup() {
     MY_SERIAL.begin(115200);
-    MY_SERIAL.println("\n **** Thermostat is starting... ****\n");
+    SETTINGS.RestoreSettings();
+    THERM.ApplySettings();
 }
 
+bool first = true;
+
 void loop() {
+    MY_SERIAL.println("\n **** Loop ****\n");
     THERM.Loop();
     delay(SAMPLE_TIME);
 }

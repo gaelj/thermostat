@@ -11,26 +11,41 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  ***************************************************************************/
-PID::PID() {
-
-}
+PID::PID(SettingsClass* settings): SETTINGS(settings) { }
 
 void PID::Create(float* Input, float* Output, float* Setpoint, 
-        float Kp, float Ki, float Kd, int POn, int ControllerDirection) {
+        float Kp, float Ki, float Kd, int POn, int ControllerDirection,
+        float Min, float Max, unsigned long NewSampleTime) {
     myOutput = Output;
     myInput = Input;
     mySetpoint = Setpoint;
     inAuto = false;
 
-    SetOutputLimits(0, 255);				//default output limit corresponds to
-											//the arduino pwm limits
+    // Set output limits
+    if (Min >= Max) return;
+    outMin = Min;
+    outMax = Max;
 
-    SampleTime = 100;						//default Controller Sample Time is 0.1 seconds
+    if (inAuto) {
+        if (*myOutput > outMax) *myOutput = outMax;
+        else if (*myOutput < outMin) *myOutput = outMin;
+
+        if (outputSum > outMax) outputSum= outMax;
+        else if (outputSum < outMin) outputSum= outMin;
+    }
+
+    if (NewSampleTime > 0) {
+        float ratio  = (float)NewSampleTime
+                        / (float)SampleTime;
+        ki *= ratio;
+        kd /= ratio;
+        SampleTime = NewSampleTime;
+    }
 
     SetControllerDirection(ControllerDirection);
     SetTunings(Kp, Ki, Kd, POn);
 
-    lastTime = millis()-SampleTime;
+    lastTime = millis() - SampleTime;
 }
 
 
@@ -101,51 +116,11 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn) {
         kd = (0 - kd);
     }
 
-    SETTINGS.TheSettings.Kp = kp;
-    SETTINGS.TheSettings.Ki = ki;
-    SETTINGS.TheSettings.Kd = kd;
-    SETTINGS.PersistSettings();
-}
-
-/* SetTunings(...)*************************************************************
- * Set Tunings using the last-rembered POn setting
- ******************************************************************************/
-void PID::SetTunings(float Kp, float Ki, float Kd) {
-    SetTunings(Kp, Ki, Kd, pOn); 
-}
-
-/* SetSampleTime(...) *********************************************************
- * sets the period, in Milliseconds, at which the calculation is performed
- ******************************************************************************/
-void PID::SetSampleTime(unsigned long NewSampleTime) {
-    if (NewSampleTime > 0) {
-        float ratio  = (float)NewSampleTime
-                        / (float)SampleTime;
-        ki *= ratio;
-        kd /= ratio;
-        SampleTime = NewSampleTime;
-    }
-}
-
-/* SetOutputLimits(...)****************************************************
- *     This function will be used far more often than SetInputLimits.  while
- *  the input to the controller will generally be in the 0-1023 range (which is
- *  the default already,)  the output will be a little different.  maybe they'll
- *  be doing a time window and will need 0-8000 or something.  or maybe they'll
- *  want to clamp it from 0-125.  who knows.  at any rate, that can all be done
- *  here.
- **************************************************************************/
-void PID::SetOutputLimits(float Min, float Max) {
-    if (Min >= Max) return;
-    outMin = Min;
-    outMax = Max;
-
-    if (inAuto) {
-        if (*myOutput > outMax) *myOutput = outMax;
-        else if (*myOutput < outMin) *myOutput = outMin;
-
-        if (outputSum > outMax) outputSum= outMax;
-        else if (outputSum < outMin) outputSum= outMin;
+    if (SETTINGS->TheSettings.Kp != kp || SETTINGS->TheSettings.Ki != ki || SETTINGS->TheSettings.Kd != kd) {
+        SETTINGS->TheSettings.Kp = kp;
+        SETTINGS->TheSettings.Ki = ki;
+        SETTINGS->TheSettings.Kd = kd;
+        SETTINGS->PersistSettings();
     }
 }
 
@@ -180,7 +155,7 @@ void PID::Initialize() {
  * be decreasing.  This is called from the constructor.
  ******************************************************************************/
 void PID::SetControllerDirection(int Direction) {
-    if (inAuto && Direction !=controllerDirection) {
+    if (inAuto && Direction != controllerDirection) {
         kp = (0 - kp);
         ki = (0 - ki);
         kd = (0 - kd);

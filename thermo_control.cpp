@@ -13,20 +13,25 @@ DHT DhtSensor(PIN_DHT_TEMP_SENSOR, DHT22);
  * @brief Constructor. Does required initialisations and turns the boiler off
  * 
  */
-ThermostatClass::ThermostatClass(AutoPidClass* autoPid): AutoPid1(autoPid) {
-    SETTINGS.RestoreSettings();
+ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings): AUTOPID(autoPid), SETTINGS(settings) {
     Input = 18.0;
     Output = 0;
     OutputForWindow = 0;
-    Setpoint = SETTINGS.TheSettings.DesiredTemperature;
-    windowSize = SAMPLE_TIME;
-    unsigned long sampleTime = SAMPLE_TIME;
 
     DhtSensor.begin();
-    byte r[1];
     SetBoilerState(false);
-    AutoPid1->SetPointers(&Input, &Output, &Setpoint, windowSize, sampleTime);
-    AutoPid1->SetAutoTune(1);
+}
+
+/**
+ * @brief Apply the settings
+ * 
+ */
+void ThermostatClass::ApplySettings() {
+    Setpoint = SETTINGS->TheSettings.DesiredTemperature;
+    windowSize = SAMPLE_TIME;
+    unsigned long sampleTime = SAMPLE_TIME;
+    AUTOPID->ApplySettings(&Input, &Output, &Setpoint, windowSize, sampleTime);
+    AUTOPID->SetAutoTune(1);
     windowStartTime = millis();
 }
 
@@ -60,8 +65,8 @@ bool ThermostatClass::GetBoilerState() {
 void ThermostatClass::SetDesiredTemperature(float value) {
     if (Setpoint != value) {
         Setpoint = value;
-        SETTINGS.TheSettings.DesiredTemperature = value;
-        SETTINGS.PersistSettings();
+        SETTINGS->TheSettings.DesiredTemperature = value;
+        SETTINGS->PersistSettings();
     }
 }
 
@@ -103,7 +108,7 @@ float ThermostatClass::GetRealHumidity() {
  */
 int ThermostatClass::Loop() {
     Input = GetRealTemperature();
-    AutoPid1->Loop();
+    AUTOPID->Loop();
 
     /************************************************
      turn the output pin on/off based on pid output

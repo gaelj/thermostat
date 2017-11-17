@@ -7,28 +7,26 @@
 #define E2P_START_ADDRESS       1
 
 struct settings_s {
-    byte    crc8;
     uint8_t E2PVersionNr;
     float   DesiredTemperature;
-    float   Kp;                  // * (P)roportional Tuning Parameter
-    float   Ki;                  // * (I)ntegral Tuning Parameter
-    float   Kd;                  // * (D)erivative Tuning Parameter    
+    float   Kp;                  // (P)roportional Tuning Parameter
+    float   Ki;                  // (I)ntegral Tuning Parameter
+    float   Kd;                  // (D)erivative Tuning Parameter    
     float   ATuneStep;
     float   ATuneNoise;
     float   ATuneStartValue;
     unsigned int ATuneLookBack;
+    byte    crc8;
 };
 
 class SettingsClass {
 public:
-    SettingsClass() {};
-    void PersistSettings();
+    SettingsClass();
     void RestoreSettings();
+    void PersistSettings();
     settings_s TheSettings;
 private:
     byte GetCrc8(byte* data, byte count);
 };
-
-extern SettingsClass SETTINGS;
 
 #endif // E2P_ADDR_H

@@ -13,7 +13,8 @@
 #include "utilities.h"
 #include "autopid.h"
 
-#define SAMPLE_TIME 20 * 60000 //in ms
+#define SAMPLE_TIME 1000 //in ms
+//#define SAMPLE_TIME 20 * 60000 //in ms
 #define MIN_CYCLE    3 * 60000 //in ms
 
 #define SWITCH_ON 0xff
@@ -23,7 +24,8 @@
 
 class ThermostatClass {
 public:
-    ThermostatClass(AutoPidClass* autoPid);
+    ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings);
+    void ApplySettings();
     int Loop();
     void SetBoilerState(bool value);
     bool GetBoilerState();
@@ -33,7 +35,8 @@ public:
     float GetRealHumidity();
 
 private:
-    AutoPidClass* AutoPid1;
+    AutoPidClass* AUTOPID;
+    SettingsClass* SETTINGS;
     bool currentBoilerState;
     float realTemp;
     float realHum;

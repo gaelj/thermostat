@@ -8,8 +8,8 @@
 
 class AutoPidClass {
 public:
-    AutoPidClass(PID* pid, PID_ATune* atune);
-    void SetPointers(float* Input, float* Output, float* Setpoint, float WindowSize, unsigned long sampleTime);
+    AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings);
+    void ApplySettings(float* Input, float* Output, float* Setpoint, float WindowSize, unsigned long sampleTime);
     void Loop();
     void SetAutoTune(char b);
 
@@ -20,10 +20,10 @@ public:
 private:
     PID* myPID;
     PID_ATune* aTune;
+    SettingsClass* SETTINGS;
     void ChangeAutoTune();
     void AutoTuneHelper(bool start);
     void SerialPrintInfoString();
-    void Setup();
     bool tuning;
     unsigned long serialTime;
     byte ATuneModeRemember;
