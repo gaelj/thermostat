@@ -46,26 +46,26 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 // Setup associations - we have 1 group for boiler on/off behavior
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
+
 SettingsClass SETTINGS;
 PID pid(&SETTINGS);
 PID_ATune atune;
-
 SensorClass SENSOR;
-
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR);
-
-void setup() {
-    MY_SERIAL.begin(115200);
-    SETTINGS.RestoreSettings();
-    THERM.ApplySettings();
-}
 
 byte boiler = SWITCH_OFF;
 float lastTemp = 200;
 byte lastBoiler = 1;
 byte lastSetpoint = 200;
 unsigned long loopStart;
+
+
+void setup() {
+    MY_SERIAL.begin(115200);
+    SETTINGS.RestoreSettings();
+    THERM.ApplySettings();
+}
 
 void loop() {
     loopStart = millis();
@@ -92,6 +92,7 @@ void loop() {
     }
     MY_SERIAL.println();
 }
+
 
 /**
  * @brief Zwave Setter for Desired Temperature
@@ -124,7 +125,6 @@ word ZGetRealTemperature() {
     return temp;
 }
 
-
 /**
  * @brief Zwave Getter for Real Humidity
  * 
@@ -134,14 +134,18 @@ byte RealHumidityGetter() {
 }
 */
 
-// Universal handler for all the channels
+/**
+ * @brief Universal handler for all the channels
+ * 
+ * @remark See callback_data variable 
+ *         We use word params for all 
+ *         We use zero based index of the channel instead of typical 
+ *         Getter/Setter index of Z-Uno. 
+ *         See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h 
+ *
+ * @param  
+ */
 void zunoCallback(void) {
-    // See callback_data variable 
-    // We use word params for all 
-    // We use zero based index of the channel instead of typical 
-    // Getter/Setter index of Z-Uno. 
-    // See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h 
-
     MY_SERIAL.println();
     MY_SERIAL.print("Callback type ");
     MY_SERIAL.println(callback_data.type);
