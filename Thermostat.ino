@@ -7,7 +7,7 @@
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
 
-// These should also be set identically in thermo_control.h and sensor.h & .cpp!
+// These should also be set identically in sensor.h and sensor.cpp!
 #define TEMP_DS18B20
 #undef  TEMP_DHT
 

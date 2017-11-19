@@ -1,9 +1,6 @@
 #ifndef THERMOSTAT_H
 #define THERMOSTAT_H
 
-#define TEMP_DS18B20
-#undef  TEMP_DHT
-
 #include <Arduino.h>
 #include <ZUNO_legacy_channels.h>
 #include <ZUNO_channels.h>
