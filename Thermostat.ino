@@ -1,13 +1,23 @@
-// the is the INO sketch
+/**
+ * @brief Thermostat on Z-uino
+ * 
+ */
 
 #include <ZUNO_legacy_channels.h>
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
 
-//#include <ZUNO_DHT.h>
+// These should also be set identically in thermo_control.h !
+#define TEMP_DS18B20
+#undef  TEMP_DHT
+
+#ifdef TEMP_DHT
+#include <ZUNO_DHT.h>
+#endif
+#ifdef TEMP_DS18B20
 #include <ZUNO_OneWire.h>
 #include <ZUNO_DS18B20.h>
-
+#endif
 #include <EEPROM.h>
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
@@ -37,8 +47,9 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 SettingsClass SETTINGS;
 PID pid(&SETTINGS);
 PID_ATune atune;
+SensorClass SENSOR;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
-ThermostatClass THERM(&AUTOPID, &SETTINGS);
+ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR);
 
 void setup() {
     MY_SERIAL.begin(115200);
@@ -64,9 +75,9 @@ void loop() {
         lastSetpoint = THERM.GetSetpoint();
         zunoSendReport(1); // report setpoint
     }
-    if (THERM.GetRealTemperature() != lastTemp) {
+    if (SENSOR.GetTemperature() != lastTemp) {
         MY_SERIAL.println("Refresh temperature!");
-        lastTemp = THERM.GetRealTemperature();
+        lastTemp = SENSOR.GetTemperature();
         zunoSendReport(2); // report temperature
     }
 
@@ -104,8 +115,9 @@ byte ZGetSetpoint() {
  */
 word ZGetRealTemperature() {
     MY_SERIAL.print("ZGetRealTemp ");
-    MY_SERIAL.println((word)(THERM.GetRealTemperature() * 100));
-    return (word)(THERM.GetRealTemperature() * 100);
+    word temp = (word)(SENSOR.GetTemperature() * 100);
+    MY_SERIAL.println(temp);
+    return temp;
 }
 
 
@@ -114,7 +126,7 @@ word ZGetRealTemperature() {
  * 
  *//*
 byte RealHumidityGetter() {
-    return fromFloat(THERM.GetRealHumidity());
+    return fromFloat(THERM.GetHumidity());
 }
 */
 

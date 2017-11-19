@@ -10,14 +10,10 @@
 #include <ZUNO_Definitions.h>
 
 #ifdef TEMP_DHT
-#include <ZUNO_DHT.h>
+#include <SensorDHT.h>
 #endif
 #ifdef TEMP_DS18B20
-#define BUS_PIN 9
-#define ROM_SIZE 8
-#define MAX_SENSOR 1
-#include <ZUNO_OneWire.h>
-#include <ZUNO_DS18B20.h>
+#include <SensorDS18B20.h>
 #endif
 
 #include <PID_v1.h>
@@ -40,23 +36,19 @@
 
 class ThermostatClass {
 public:
-    ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings);
+    ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor);
     void ApplySettings();
     int Loop();
     void SetBoilerState(bool value);
     bool GetBoilerState();
     void SetSetpoint(float value);
     float GetSetpoint();
-    float GetRealTemperature();
-    float GetRealHumidity();
-    void ReadRealTemperature();
 
 private:
     AutoPidClass* AUTOPID;
     SettingsClass* SETTINGS;
+    SensorClass* SENSOR;
     bool currentBoilerState;
-    float realTemp;
-    float realHum;
     float Setpoint;
     float Input;
     float Output;

@@ -7,30 +7,15 @@
 
 #include "thermo_control.h"
 
-#ifdef TEMP_DHT
-DHT DhtSensor(PIN_DHT_TEMP_SENSOR, DHT22);
-#endif
-#ifdef TEMP_DS18B20
-OneWire ow(BUS_PIN);
-DS18B20Sensor ds18b20(&ow);
-byte sensor_roms[ROM_SIZE*MAX_SENSOR];
-#define ROM_DATA(index) (&sensor_roms[index*ROM_SIZE])
-#endif
-
 /**
  * @brief Constructor. Does required initialisations and turns the boiler off
  * 
  */
-ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings): AUTOPID(autoPid), SETTINGS(settings) {
+ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor):
+        AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor) {
     Input = 18.0;
     Output = 0;
     OutputForWindow = 0;
-#ifdef TEMP_DHT
-    DhtSensor.begin();
-#endif
-#ifdef TEMP_DS18B20
-    ds18b20.findAllSensors(sensor_roms);
-#endif
     SetBoilerState(false);
 }
 
@@ -93,50 +78,15 @@ float ThermostatClass::GetSetpoint() {
     return Setpoint;
 }
 
-void ThermostatClass::ReadRealTemperature() {
-    byte forceRead = 0;
-#ifdef TEMP_DHT
-    realTemp = DhtSensor.readTemperature(forceRead);
-#endif
-#ifdef TEMP_DS18B20
-    realTemp = ds18b20.getTemperature(ROM_DATA(0));
-#endif
-    Serial.println(realTemp);
-}
-/**
- * @brief Get the current room temperature
- * 
- * @return float   the room temperature
- */
-float ThermostatClass::GetRealTemperature() {
-    return realTemp;
-}
-
-/**
- * @brief Get the current room humidity
- * 
- * @return float   the room humidity
- */
-float ThermostatClass::GetRealHumidity() {
-    byte forceRead = 0;
-#ifdef TEMP_DHT
-    realHum = DhtSensor.readHumidity(forceRead);
-#endif
-#ifdef TEMP_DS18B20
-    realHum = 0;
-#endif
-    return realHum;
-}
-
 /**
  * @brief MCU loop function
  * 
  * @return int      0 if OK, -1 in case of error
  */
 int ThermostatClass::Loop() {
-    ReadRealTemperature();
+    SENSOR->ReadSensor();
     /*
-    Input = GetRealTemperature();
+    Input = GetTemperature();
     AUTOPID->Loop();
 
     // turn the output pin on/off based on pid output
