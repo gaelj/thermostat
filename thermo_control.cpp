@@ -1,23 +1,17 @@
 /**
  * @brief Main Thermostat class
- *          Gives access to boiler state, desired temperature, real temperature & humidity,
- *          and implements ZWave getter & setter functions
+ *          Gives access to desired temperature, real temperature & humidity
  * 
  */
 
 #include "thermo_control.h"
 
 /**
- * @brief Constructor. Does required initialisations and turns the boiler off
+ * @brief Constructor. Does required initialisations
  * 
  */
-ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor):
-        AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor) {
-    Input = 18.0;
-    Output = 0;
-    OutputForWindow = 0;
-    SetBoilerState(false);
-}
+ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler):
+        AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler) { }
 
 /**
  * @brief Apply the settings
@@ -25,33 +19,9 @@ ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings,
  */
 void ThermostatClass::ApplySettings() {
     SetSetpoint(SETTINGS->TheSettings.Setpoint);
-    windowSize = SAMPLE_TIME;
-    unsigned long sampleTime = SAMPLE_TIME;
-    AUTOPID->ApplySettings(&Input, &Output, &Setpoint, windowSize, sampleTime);
+    AUTOPID->ApplySettings();
     AUTOPID->SetAutoTune(1);
     windowStartTime = millis();
-}
-
-/**
- * @brief Set the state of the boiler to on or off
- * 
- * @param value     the desired state
- */
-void ThermostatClass::SetBoilerState(bool value) {
-    if (currentBoilerState != value) {
-        currentBoilerState = value;
-        zunoSendToGroupSetValueCommand(CONTROL_GROUP_1, value > 0 ? SWITCH_ON : SWITCH_OFF);
-    }
-}
-
-/**
- * @brief Get the current state of the boiler
- * 
- * @return true     the boiler is on
- * @return false    the boiler is off
- */
-bool ThermostatClass::GetBoilerState() {
-    return currentBoilerState;
 }
 
 /**
@@ -60,10 +30,8 @@ bool ThermostatClass::GetBoilerState() {
  * @param value     the desired temperature
  */
 void ThermostatClass::SetSetpoint(float value) {
-    if (value < THERMOSTAT_MIN) value = THERMOSTAT_MIN;
-    else if (value > THERMOSTAT_MAX) value = THERMOSTAT_MAX;
-    if (Setpoint != value) {
-        Setpoint = value;
+    if (value < THERMOSTAT_MIN || value > THERMOSTAT_MAX) value = THERMOSTAT_DEFAULT;
+    if (SETTINGS->TheSettings.Setpoint != value) {
         SETTINGS->TheSettings.Setpoint = value;
         SETTINGS->PersistSettings();
     }
@@ -75,7 +43,7 @@ void ThermostatClass::SetSetpoint(float value) {
  * @return float   the desired temperature
  */
 float ThermostatClass::GetSetpoint() {
-    return Setpoint;
+    return SETTINGS->TheSettings.Setpoint;
 }
 
 /**
@@ -85,23 +53,18 @@ float ThermostatClass::GetSetpoint() {
  */
 int ThermostatClass::Loop() {
     SENSOR->ReadSensor();
-    /*
-    Input = GetTemperature();
+    
+    AUTOPID->Input = SENSOR->GetTemperature();
     AUTOPID->Loop();
 
     // turn the output pin on/off based on pid output
     unsigned long now = millis();
-    if (now - windowStartTime > windowSize) {
+    if (now - windowStartTime > AUTOPID->WindowSize) {
         //time to shift the Relay Window
-        windowStartTime += windowSize;
-        if (Output < (MIN_CYCLE / 2)) OutputForWindow = 0;
-        else if (Output < MIN_CYCLE) OutputForWindow = MIN_CYCLE;
-        else if ((windowSize - Output) < (MIN_CYCLE / 2)) OutputForWindow = windowSize;
-        else if ((windowSize - Output) < MIN_CYCLE) OutputForWindow = windowSize - MIN_CYCLE;
-        else OutputForWindow = Output;
+        windowStartTime += AUTOPID->WindowSize;
     }
-    bool state = ((now - windowStartTime) < OutputForWindow);
-    SetBoilerState(state);
-    */
+    bool state = ((now - windowStartTime) < AUTOPID->Output);
+    BOILER->SetBoilerState(state);
+    
     return 0;
 }

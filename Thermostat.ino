@@ -24,6 +24,7 @@
 #include <PID_AutoTune_v0.h>
 
 #include "sensor.h"
+#include "boiler.h"
 #include "thermo_control.h"
 #include "settings.h"
 
@@ -51,8 +52,9 @@ SettingsClass SETTINGS;
 PID pid(&SETTINGS);
 PID_ATune atune;
 SensorClass SENSOR;
+BoilerClass BOILER;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
-ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR);
+ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER);
 
 byte boiler = SWITCH_OFF;
 float lastTemp = 200;
@@ -73,7 +75,7 @@ void loop() {
     THERM.Loop();
 
     boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
-    THERM.SetBoilerState(boiler);
+    BOILER.SetBoilerState(boiler);
 
     if (THERM.GetSetpoint() != lastSetpoint) {
         lastSetpoint = THERM.GetSetpoint();

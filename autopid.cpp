@@ -3,11 +3,13 @@
 
 AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings): myPID(pid), aTune(atune), SETTINGS(settings) { }
 
-void AutoPidClass::ApplySettings(float* Input, float* Output, float* Setpoint, float WindowSize, unsigned long sampleTime) {
+void AutoPidClass::ApplySettings() {
     Serial.println("Load PID settings");
     ATuneModeRemember = 2;
-    tuning = false;
-    
+    tuning = false;    
+    Input = THERMOSTAT_DEFAULT;
+    Output = 0;
+
     kd = SETTINGS->TheSettings.Kd;
     kp = SETTINGS->TheSettings.Kp;
     ki = SETTINGS->TheSettings.Ki;
@@ -17,8 +19,10 @@ void AutoPidClass::ApplySettings(float* Input, float* Output, float* Setpoint, f
     aTuneStartValue = SETTINGS->TheSettings.ATuneStartValue;
 
     //Tell the PID to range between 0 and the full window size
-    myPID->Create(Input, Output, Setpoint, kp, ki, kd, P_ON_E, DIRECT, 0, WindowSize, sampleTime);
-    aTune->Create(Input, Output);
+    WindowSize = SAMPLE_TIME;
+    SampleTime = SAMPLE_TIME;
+    myPID->Create(&Input, &Output, &SETTINGS->TheSettings.Setpoint, kp, ki, kd, P_ON_E, DIRECT, 0, WindowSize, SampleTime);
+    aTune->Create(&Input, &Output);
 
     //Setup the pid 
     myPID->SetMode(AUTOMATIC);
