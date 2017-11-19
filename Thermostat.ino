@@ -7,7 +7,7 @@
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
 
-// These should also be set identically in thermo_control.h !
+// These should also be set identically in thermo_control.h and sensor.h & .cpp!
 #define TEMP_DS18B20
 #undef  TEMP_DHT
 
@@ -18,10 +18,12 @@
 #include <ZUNO_OneWire.h>
 #include <ZUNO_DS18B20.h>
 #endif
+
 #include <EEPROM.h>
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
 
+#include "sensor.h"
 #include "thermo_control.h"
 #include "settings.h"
 
@@ -47,7 +49,9 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 SettingsClass SETTINGS;
 PID pid(&SETTINGS);
 PID_ATune atune;
+
 SensorClass SENSOR;
+
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR);
 

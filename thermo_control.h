@@ -9,12 +9,7 @@
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
 
-#ifdef TEMP_DHT
-#include <SensorDHT.h>
-#endif
-#ifdef TEMP_DS18B20
-#include <SensorDS18B20.h>
-#endif
+#include <sensor.h>
 
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
