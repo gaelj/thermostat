@@ -3,7 +3,11 @@
 #include <ZUNO_legacy_channels.h>
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
-#include <ZUNO_DHT.h>
+
+//#include <ZUNO_DHT.h>
+#include <ZUNO_OneWire.h>
+#include <ZUNO_DS18B20.h>
+
 #include <EEPROM.h>
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
@@ -15,19 +19,20 @@
 // It's a most comfortable way for debugging
 #define MY_SERIAL Serial
 
-ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
+#define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER)    ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)	
 
-// Setup associations - we have 1 group for boiler on/off behavior
-ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
+ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
 // Setup channels - we have 1 channel to get/set the desired temperature,
 //                          1 channel to get the real temperature,
-//                          1 channel to get the real humidity,
-//                          1 channel to get/set boiler state
-ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(DesiredTemperatureGetter, DesiredTemperatureSetter),
-                    ZUNO_SENSOR_MULTILEVEL_TEMPERATURE(RealTemperatureGetter),
-                    ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter),
-                    ZUNO_SWITCH_BINARY(BoilerGetter, BoilerSetter));
+//                          1 channel to get the real humidity
+ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
+                   ,ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
+                   //,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
+                    );
+
+// Setup associations - we have 1 group for boiler on/off behavior
+ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 SettingsClass SETTINGS;
 PID pid(&SETTINGS);
@@ -41,60 +46,94 @@ void setup() {
     THERM.ApplySettings();
 }
 
-bool first = true;
+byte boiler = SWITCH_OFF;
+float lastTemp = 200;
+byte lastBoiler = 1;
+byte lastSetpoint = 200;
+unsigned long loopStart;
 
 void loop() {
-    MY_SERIAL.println("\n **** Loop ****\n");
+    loopStart = millis();
+    MY_SERIAL.println("**** Loop ****");
     THERM.Loop();
-    delay(SAMPLE_TIME);
+
+    boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
+    THERM.SetBoilerState(boiler);
+
+    if (THERM.GetSetpoint() != lastSetpoint) {
+        lastSetpoint = THERM.GetSetpoint();
+        zunoSendReport(1); // report setpoint
+    }
+    if (THERM.GetRealTemperature() != lastTemp) {
+        MY_SERIAL.println("Refresh temperature!");
+        lastTemp = THERM.GetRealTemperature();
+        zunoSendReport(2); // report temperature
+    }
+
+    MY_SERIAL.print("Wait");
+    while (millis() - loopStart < SAMPLE_TIME) {
+        delay(1000);
+        MY_SERIAL.print(".");
+    }
+    MY_SERIAL.println();
 }
 
 /**
  * @brief Zwave Setter for Desired Temperature
  * 
  */
-void DesiredTemperatureSetter(byte value) {
-    float d = toFloat(value);
-    THERM.SetDesiredTemperature(d);
+void ZSetSetpoint(byte value) {
+    MY_SERIAL.print("ZSetSetpoint to ");
+    MY_SERIAL.println(value);
+    THERM.SetSetpoint(value);
 }
 
 /**
  * @brief Zwave Getter for Desired Temperature
  * 
  */
-byte DesiredTemperatureGetter() {
-    return fromFloat(THERM.GetDesiredTemperature());
-}
-
-/**
- * @brief Zwave Setter for Boiler state
- * 
- */
-void BoilerSetter(byte value) {
-    bool d = (value > 0);
-    THERM.SetBoilerState(d);
-}
-
-/**
- * @brief Zwave Getter for Boiler state
- * 
- */
-byte BoilerGetter() {
-    return (byte)(THERM.GetBoilerState() ? 255 : 0);
+byte ZGetSetpoint() {
+    MY_SERIAL.print("ZGetSetpoint ");
+    MY_SERIAL.println((byte)THERM.GetSetpoint());
+    return (byte)THERM.GetSetpoint();
 }
 
 /**
  * @brief Zwave Getter for Real Temperature
  * 
  */
-byte RealTemperatureGetter() {
-    return fromFloat(THERM.GetRealTemperature());
+word ZGetRealTemperature() {
+    MY_SERIAL.print("ZGetRealTemp ");
+    MY_SERIAL.println((word)(THERM.GetRealTemperature() * 100));
+    return (word)(THERM.GetRealTemperature() * 100);
 }
+
 
 /**
  * @brief Zwave Getter for Real Humidity
  * 
- */
+ *//*
 byte RealHumidityGetter() {
     return fromFloat(THERM.GetRealHumidity());
+}
+*/
+
+// Universal handler for all the channels
+void zunoCallback(void) {
+    // See callback_data variable 
+    // We use word params for all 
+    // We use zero based index of the channel instead of typical 
+    // Getter/Setter index of Z-Uno. 
+    // See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h 
+
+    MY_SERIAL.println();
+    MY_SERIAL.print("Callback type ");
+    MY_SERIAL.println(callback_data.type);
+    
+    switch(callback_data.type) {
+        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
+        case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
+        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
+        default: break;
+    }
 }

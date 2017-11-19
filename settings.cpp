@@ -33,7 +33,7 @@ void SettingsClass::RestoreSettings() {
     if (GetCrc8((byte*)&TheSettings, sizeof(settings_s) - 1) != TheSettings.crc8 || TheSettings.E2PVersionNr != E2P_VERSION_NUMBER) {
         // Invalid data - reset all
         TheSettings.E2PVersionNr = E2P_VERSION_NUMBER;
-        TheSettings.DesiredTemperature = 18.0;
+        TheSettings.Setpoint = 18.0;
         TheSettings.Kp = 2;
         TheSettings.Ki = 0.5;
         TheSettings.Kd = 2;

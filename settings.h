@@ -8,7 +8,7 @@
 
 struct settings_s {
     uint8_t E2PVersionNr;
-    float   DesiredTemperature;
+    float   Setpoint;
     float   Kp;                  // (P)roportional Tuning Parameter
     float   Ki;                  // (I)ntegral Tuning Parameter
     float   Kd;                  // (D)erivative Tuning Parameter    
