@@ -3,3 +3,8 @@
 /.project
 /Thermostat.code-workspace
 /.cproject
+/__vm
+/*.vcxproj
+/.vs/Thermostat/v15
+/Thermostat.vcxproj.filters
+/Thermostat.vcxproj.user
