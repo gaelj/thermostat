@@ -2,10 +2,7 @@
 #define THERMOSTAT_H
 
 #include <Arduino.h>
-#include <PID_v1.h>
-#include <PID_AutoTune_v0.h>
 #include "settings.h"
-#include "pinout.h"
 #include "sensor.h"
 #include "boiler.h"
 #include "autopid.h"
@@ -29,6 +26,7 @@ private:
     HysteresisClass* HYST;
     unsigned long windowStartTime;
     byte GetBoilerStateByWindowWidth(float output);
+    float LastOutput;
 };
 
 #endif // THERMOSTAT_H

@@ -14,6 +14,7 @@ ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings,
         AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler), HYST(hist) {
     BOILER->SetBoilerState(false);
     windowStartTime = 0;
+    LastOutput = 0;
 }
 
 /**
@@ -47,18 +48,16 @@ float ThermostatClass::GetSetpoint() {
 int ThermostatClass::Loop() {
     SENSOR->ReadSensor();
 
-    float temp = 0;
-    float output = 0;
-    byte state = 0;
-    temp = SENSOR->GetTemperature();
+    float temp = SENSOR->GetTemperature();
     
     if (windowStartTime == 0 || ((millis() - windowStartTime) > SETTINGS->TheSettings.SampleTime)) {
         //time to shift the Relay Window
-        output = HYST->Loop(temp);
+        Serial.println("New window **");
+        LastOutput = HYST->Loop(temp);
         windowStartTime = millis();
     }
     // output = AUTOPID->Loop(temp);
-    state = GetBoilerStateByWindowWidth(output);
+    byte state = GetBoilerStateByWindowWidth(LastOutput);
     BOILER->SetBoilerState(state);
     
     return 0;
@@ -69,15 +68,15 @@ int ThermostatClass::Loop() {
  * 
  * @return byte 
  */
-byte ThermostatClass::GetBoilerStateByWindowWidth(float output) {
-    unsigned long now = millis();
-    bool state = ((now - windowStartTime) < output);
+byte ThermostatClass::GetBoilerStateByWindowWidth(const float output) {
+    const unsigned long now = millis();
+    const bool state = ((now - windowStartTime) < (output * SETTINGS->TheSettings.SampleTime));
     
     Serial.print("Get boiler state");
     Serial.print(" window: ");
     Serial.print((now - windowStartTime) * 100 / SETTINGS->TheSettings.SampleTime);
     Serial.print("% output: ");
-    Serial.print(output * 100 / SETTINGS->TheSettings.SampleTime);
+    Serial.print(output * 100);
     Serial.print("% state:");
     Serial.println(state);
     

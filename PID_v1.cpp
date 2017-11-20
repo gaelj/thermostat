@@ -95,7 +95,7 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn) {
 
     dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
-    float SampleTimeInSec = ((float)SETTINGS->TheSettings.SampleTime) / 1000;
+    float SampleTimeInSec = float(SETTINGS->TheSettings.SampleTime) / 1000;
     kp = Kp;
     ki = Ki * SampleTimeInSec;
     kd = Kd / SampleTimeInSec;

@@ -64,6 +64,7 @@ byte lastBoiler = 1;
 byte lastSetpoint = 200;
 unsigned long lastRefresh;
 unsigned long const delayRefresh = 30000;
+bool settingsError = false;
 
 void setup() {
     MY_SERIAL.begin(115200);
@@ -75,7 +76,8 @@ void setup() {
 
     if (!SETTINGS.RestoreSettings()) {
         SETTINGS.LoadDefaults();
-        SETTINGS.PersistSettings();
+        if (!SETTINGS.PersistSettings())
+            settingsError = true;
     }
 
     lastRefresh = 0;
@@ -85,24 +87,30 @@ void setup() {
 
 void loop() {
     MY_SERIAL.println("**** Loop");
-    THERM.Loop();
+    if (!settingsError) {
+        THERM.Loop();
 
-    //boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
-    //BOILER.SetBoilerState(boiler);
-    if (millis() > lastRefresh + delayRefresh) {
-        MY_SERIAL.println("Refresh Zwave");
-        lastRefresh = millis();
-        if (THERM.GetSetpoint() != lastSetpoint) {
-            lastSetpoint = THERM.GetSetpoint();
-            zunoSendReport(1); // report setpoint
-        }
-        if (SENSOR.GetTemperature() != lastTemp) {
-            MY_SERIAL.print("Refr temp! ");
-            MY_SERIAL.println(SENSOR.GetTemperature());
-            lastTemp = SENSOR.GetTemperature();
-            zunoSendReport(2); // report temperature
+        //boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
+        //BOILER.SetBoilerState(boiler);
+        if (millis() > lastRefresh + delayRefresh) {
+            MY_SERIAL.println("Refresh Zwave");
+            lastRefresh = millis();
+            if (THERM.GetSetpoint() != lastSetpoint) {
+                lastSetpoint = THERM.GetSetpoint();
+                zunoSendReport(1); // report setpoint
+            }
+            if (SENSOR.GetTemperature() != lastTemp) {
+                MY_SERIAL.print("Refr temp! ");
+                MY_SERIAL.println(SENSOR.GetTemperature());
+                lastTemp = SENSOR.GetTemperature();
+                zunoSendReport(2); // report temperature
+            }
         }
     }
+    else {
+        MY_SERIAL.println("Stng er");
+    }
+
     MY_SERIAL.println("Wait");
     delay(1000);
     /*

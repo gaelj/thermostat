@@ -7,13 +7,10 @@
 class HysteresisClass {
 public:
     HysteresisClass(SettingsClass* settings);
-    unsigned long Loop(float);
+    float Loop(const float);
 
 private:
     SettingsClass* SETTINGS;
-    float Input;
-    unsigned long Output;
-    void SerialPrintInfoString();
 };
 
 #endif // HYSTERESIS_H

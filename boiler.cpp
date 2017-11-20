@@ -21,7 +21,7 @@ BoilerClass::BoilerClass() {
  * @param value     the desired state
  */
 void BoilerClass::SetBoilerState(bool value) {
-    if (currentBoilerState != value && (lastBoilerChange == 0 || (millis() >= lastBoilerChange + BOILER_MIN_TIME))) {
+    if (currentBoilerState != value && (lastBoilerChange == 0 || ((millis() - lastBoilerChange) >= BOILER_MIN_TIME))) {
         Serial.print("Set boiler ");
         Serial.println(value);
         currentBoilerState = value;

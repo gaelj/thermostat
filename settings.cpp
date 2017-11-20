@@ -1,18 +1,18 @@
 #include "settings.h"
 
 /**
- * @brief Constructor
- * 
- */
+* @brief Constructor
+*
+*/
 SettingsClass::SettingsClass() { }
 
 /**
- * @brief Calculate the CRC8 value of a structure
- * 
- * @param data 
- * @param count 
- * @return byte 
- */
+* @brief Calculate the CRC8 value of a structure
+*
+* @param data
+* @param count
+* @return byte
+*/
 byte SettingsClass::GetCrc8(byte* data, byte count) {
     byte result = 0xDF;
     while (count--) {
@@ -23,11 +23,11 @@ byte SettingsClass::GetCrc8(byte* data, byte count) {
 }
 
 /**
- * @brief Restore the settings struct from E2P. Checks the CRC8 and version values. Resets to default values in case of error
- * 
- * @return true   The settings are valid
- * @return false  The settings are invalid (wrong CRC or E2P version has changed)
- */
+* @brief Restore the settings struct from E2P. Checks the CRC8 and version values. Resets to default values in case of error
+*
+* @return true   The settings are valid
+* @return false  The settings are invalid (wrong CRC or E2P version has changed)
+*/
 bool SettingsClass::RestoreSettings() {
     Serial.println("Restore stgs");
     EEPROM.get(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
@@ -39,9 +39,9 @@ bool SettingsClass::RestoreSettings() {
 }
 
 /**
- * @brief Apply default values to TheSettings
- * 
- */
+* @brief Apply default values to TheSettings
+*
+*/
 void SettingsClass::LoadDefaults() {
     Serial.println("Reset stgs");
     // Invalid data - reset all
@@ -59,10 +59,10 @@ void SettingsClass::LoadDefaults() {
 }
 
 /**
- * @brief Calculate the CRC8 and persist the settings struct to E2P
- * 
- */
-void SettingsClass::PersistSettings() {
+* @brief Calculate the CRC8 and persist the settings struct to E2P
+*
+*/
+bool SettingsClass::PersistSettings() {
     Serial.print("Persist stgs ");
     Serial.println((int)sizeof(settings_s));
 
@@ -70,13 +70,15 @@ void SettingsClass::PersistSettings() {
     EEPROM.put(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
     if (!RestoreSettings()) {
         Serial.println("Persist check error");
+        return false;
     }
+    return true;
 }
 
 /**
- * @brief Dump all setting values to Serial
- * 
- */
+* @brief Dump all setting values to Serial
+*
+*/
 void SettingsClass::DumpSettings() {
     Serial.println("============ Settings:");
     Serial.println(TheSettings.Version);
