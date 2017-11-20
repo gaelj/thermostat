@@ -3,12 +3,11 @@
 /**
  * @brief Constructor: Set default values
  * 
- * @param pid 
- * @param atune 
  * @param settings 
  */
 HysteresisClass::HysteresisClass(SettingsClass* settings): SETTINGS(settings) {
     Serial.println("*** Init Hyst");
+    heatCycleIsActive = false;
 }
 
 /**
@@ -19,18 +18,11 @@ HysteresisClass::HysteresisClass(SettingsClass* settings): SETTINGS(settings) {
  */
 float HysteresisClass::Loop(const float input) {
     Serial.println("hyst loop");
-    /*
-    Serial.print(" SP ");
-    Serial.print(SETTINGS->TheSettings.Setpoint);
-    Serial.print(" HR ");
-    Serial.print((float)SETTINGS->TheSettings.HysteresisRange);
-    Serial.print(" SP + HR ");
-    Serial.print(SETTINGS->TheSettings.Setpoint + SETTINGS->TheSettings.HysteresisRange);
-    Serial.print(" I ");
-    Serial.println(Input);
-    */
     float output = 0;
-    if (input < SETTINGS->TheSettings.Setpoint) { // + SETTINGS->TheSettings.HysteresisRange) {
+    if ((input < (SETTINGS->TheSettings.Setpoint - SETTINGS->TheSettings.HysteresisRange))
+        || (heatCycleIsActive && (
+            input < (SETTINGS->TheSettings.Setpoint /*+ SETTINGS->TheSettings.HysteresisRange*/))
+        )) {
         Serial.print("hyst updt out ");
         Serial.print(SETTINGS->TheSettings.Setpoint);
         Serial.print(" ");
@@ -40,8 +32,7 @@ float HysteresisClass::Loop(const float input) {
         Serial.print(" -> ");
 
         output = min(
-            ((SETTINGS->TheSettings.Setpoint + SETTINGS->TheSettings.HysteresisRange - input)
-                / 5.0) + 0.15,
+            ((SETTINGS->TheSettings.Setpoint - input) / 5.0),
             1.0);
         Serial.print(output);
     }

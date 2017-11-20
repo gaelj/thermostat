@@ -7,10 +7,7 @@
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
 
-// These should also be set identically in sensor.h and sensor.cpp!
-#define TEMP_DS18B20
-#undef  TEMP_DHT
-
+#include "sensor.h"
 #ifdef TEMP_DHT
 #include <ZUNO_DHT.h>
 #endif
@@ -24,7 +21,6 @@
 #include <PID_AutoTune_v0.h>
 
 #include "settings.h"
-#include "sensor.h"
 #include "boiler.h"
 #include "hysteresis.h"
 #include "thermo_control.h"

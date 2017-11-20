@@ -11,6 +11,7 @@ public:
 
 private:
     SettingsClass* SETTINGS;
+    bool heatCycleIsActive;
 };
 
 #endif // HYSTERESIS_H

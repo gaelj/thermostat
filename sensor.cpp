@@ -7,9 +7,6 @@
 
 #include "sensor.h"
 
-#define TEMP_DS18B20
-#undef  TEMP_DHT
-
 #ifdef TEMP_DHT
 
 DHT DhtSensor(PIN_TEMP_SENSOR, DHT22);
@@ -18,7 +15,7 @@ DHT DhtSensor(PIN_TEMP_SENSOR, DHT22);
  * @brief Constructor. Does required initialisations and turns the boiler off
  * 
  */
-SensorClass::SensorClassDHT() {
+SensorClass::SensorClass() {
     DhtSensor.begin();
 }
 
