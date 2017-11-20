@@ -23,10 +23,11 @@
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
 
+#include "settings.h"
 #include "sensor.h"
 #include "boiler.h"
+#include "hysteresis.h"
 #include "thermo_control.h"
-#include "settings.h"
 
 // For some cases use UART (Serial0/Serial1)
 // It's a most comfortable way for debugging
@@ -51,48 +52,67 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 SettingsClass SETTINGS;
 PID pid(&SETTINGS);
 PID_ATune atune;
+HysteresisClass HIST(&SETTINGS);
 SensorClass SENSOR;
 BoilerClass BOILER;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
-ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER);
+ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST);
 
 byte boiler = SWITCH_OFF;
 float lastTemp = 200;
 byte lastBoiler = 1;
 byte lastSetpoint = 200;
-unsigned long loopStart;
-
+unsigned long lastRefresh;
+unsigned long const delayRefresh = 30000;
 
 void setup() {
     MY_SERIAL.begin(115200);
-    SETTINGS.RestoreSettings();
-    THERM.ApplySettings();
+    MY_SERIAL.println("**** Setup");
+    
+    // DEBUG !
+    //SETTINGS.LoadDefaults();
+    //SETTINGS.PersistSettings();
+
+    if (!SETTINGS.RestoreSettings()) {
+        SETTINGS.LoadDefaults();
+        SETTINGS.PersistSettings();
+    }
+
+    lastRefresh = 0;
+    //AUTOPID.ApplySettings();
+    //AUTOPID.SetAutoTune(1);
 }
 
 void loop() {
-    loopStart = millis();
-    MY_SERIAL.println("**** Loop ****");
+    MY_SERIAL.println("**** Loop");
     THERM.Loop();
 
-    boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
-    BOILER.SetBoilerState(boiler);
-
-    if (THERM.GetSetpoint() != lastSetpoint) {
-        lastSetpoint = THERM.GetSetpoint();
-        zunoSendReport(1); // report setpoint
+    //boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
+    //BOILER.SetBoilerState(boiler);
+    if (millis() > lastRefresh + delayRefresh) {
+        MY_SERIAL.println("Refresh Zwave");
+        lastRefresh = millis();
+        if (THERM.GetSetpoint() != lastSetpoint) {
+            lastSetpoint = THERM.GetSetpoint();
+            zunoSendReport(1); // report setpoint
+        }
+        if (SENSOR.GetTemperature() != lastTemp) {
+            MY_SERIAL.print("Refr temp! ");
+            MY_SERIAL.println(SENSOR.GetTemperature());
+            lastTemp = SENSOR.GetTemperature();
+            zunoSendReport(2); // report temperature
+        }
     }
-    if (SENSOR.GetTemperature() != lastTemp) {
-        MY_SERIAL.println("Refresh temperature!");
-        lastTemp = SENSOR.GetTemperature();
-        zunoSendReport(2); // report temperature
-    }
-
+    MY_SERIAL.println("Wait");
+    delay(1000);
+    /*
     MY_SERIAL.print("Wait");
     while (millis() - loopStart < SAMPLE_TIME) {
         delay(1000);
         MY_SERIAL.print(".");
     }
     MY_SERIAL.println();
+    */
 }
 
 
@@ -101,8 +121,8 @@ void loop() {
  * 
  */
 void ZSetSetpoint(byte value) {
-    MY_SERIAL.print("ZSetSetpoint to ");
-    MY_SERIAL.println(value);
+    //MY_SERIAL.print("ZSetSetpoint to ");
+    //MY_SERIAL.println(value);
     THERM.SetSetpoint(value);
 }
 
@@ -111,8 +131,8 @@ void ZSetSetpoint(byte value) {
  * 
  */
 byte ZGetSetpoint() {
-    MY_SERIAL.print("ZGetSetpoint ");
-    MY_SERIAL.println((byte)THERM.GetSetpoint());
+    //MY_SERIAL.print("ZGetSetpoint ");
+    //MY_SERIAL.println((byte)THERM.GetSetpoint());
     return (byte)THERM.GetSetpoint();
 }
 
@@ -121,9 +141,9 @@ byte ZGetSetpoint() {
  * 
  */
 word ZGetRealTemperature() {
-    MY_SERIAL.print("ZGetRealTemp ");
+    //MY_SERIAL.print("ZGetRealTemp ");
     word temp = (word)(SENSOR.GetTemperature() * 100);
-    MY_SERIAL.println(temp);
+    //MY_SERIAL.println(temp);
     return temp;
 }
 
@@ -148,10 +168,9 @@ byte RealHumidityGetter() {
  * @param  
  */
 void zunoCallback(void) {
-    MY_SERIAL.println();
-    MY_SERIAL.print("Callback type ");
-    MY_SERIAL.println(callback_data.type);
-    
+    //MY_SERIAL.println();
+    //MY_SERIAL.print("Callback type ");
+    //MY_SERIAL.println(callback_data.type);
     switch(callback_data.type) {
         case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
         case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;

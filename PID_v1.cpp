@@ -15,7 +15,7 @@ PID::PID(SettingsClass* settings): SETTINGS(settings) { }
 
 void PID::Create(float* Input, float* Output, float* Setpoint, 
         float Kp, float Ki, float Kd, int POn, int ControllerDirection,
-        float Min, float Max, unsigned long NewSampleTime) {
+        float Min, float Max) {
     myOutput = Output;
     myInput = Input;
     mySetpoint = Setpoint;
@@ -25,27 +25,14 @@ void PID::Create(float* Input, float* Output, float* Setpoint,
     if (Min >= Max) return;
     outMin = Min;
     outMax = Max;
-
-    if (inAuto) {
-        if (*myOutput > outMax) *myOutput = outMax;
-        else if (*myOutput < outMin) *myOutput = outMin;
-
-        if (outputSum > outMax) outputSum= outMax;
-        else if (outputSum < outMin) outputSum= outMin;
-    }
-
-    if (NewSampleTime > 0) {
-        float ratio  = (float)NewSampleTime
-                        / (float)SampleTime;
-        ki *= ratio;
-        kd /= ratio;
-        SampleTime = NewSampleTime;
-    }
-
+    
     SetControllerDirection(ControllerDirection);
     SetTunings(Kp, Ki, Kd, POn);
 
-    lastTime = millis() - SampleTime;
+    if (millis() > SETTINGS->TheSettings.SampleTime)
+        lastTime = millis() - SETTINGS->TheSettings.SampleTime;
+    else
+        lastTime = 0;
 }
 
 
@@ -56,10 +43,12 @@ void PID::Create(float* Input, float* Output, float* Setpoint,
  *   false when nothing has been done.
  **********************************************************************************/
 bool PID::Compute() {
+    Serial.println("Compute PID...");
     if (!inAuto) return false;
     unsigned long now = millis();
     unsigned long timeChange = (now - lastTime);
-    if (timeChange >= SampleTime) {
+
+    if (timeChange >= SETTINGS->TheSettings.SampleTime) {
         //Compute all the working error variables
         float input = *myInput;
         float error = *mySetpoint - input;
@@ -87,6 +76,7 @@ bool PID::Compute() {
         //Remember some variables for next time
         lastInput = input;
         lastTime = now;
+
         return true;
     }
     else return false;
@@ -105,7 +95,7 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn) {
 
     dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
-    float SampleTimeInSec = ((float)SampleTime)/1000;
+    float SampleTimeInSec = ((float)SETTINGS->TheSettings.SampleTime) / 1000;
     kp = Kp;
     ki = Ki * SampleTimeInSec;
     kd = Kd / SampleTimeInSec;
@@ -114,13 +104,6 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn) {
         kp = (0 - kp);
         ki = (0 - ki);
         kd = (0 - kd);
-    }
-
-    if (SETTINGS->TheSettings.Kp != kp || SETTINGS->TheSettings.Ki != ki || SETTINGS->TheSettings.Kd != kd) {
-        SETTINGS->TheSettings.Kp = kp;
-        SETTINGS->TheSettings.Ki = ki;
-        SETTINGS->TheSettings.Kd = kd;
-        SETTINGS->PersistSettings();
     }
 }
 
@@ -173,11 +156,3 @@ float PID::GetKi() { return  dispKi; }
 float PID::GetKd() { return  dispKd; }
 int PID::GetMode() { return  inAuto ? AUTOMATIC : MANUAL; }
 int PID::GetDirection() { return controllerDirection; }
-
-float  PID::GetInput() { return *myInput; }
-float  PID::GetOutput() { return *myOutput; }
-float  PID::GetSetpoint() { return *mySetpoint; }
-
-void  PID::SetInput(float value) { *myInput = value; }
-void  PID::SetOutput(float value) { *myOutput = value; }
-void  PID::SetSetpoint(float value) { *mySetpoint = value; }

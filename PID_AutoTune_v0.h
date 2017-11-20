@@ -9,7 +9,7 @@ public:
 	//commonly used functions **************************************************************************
     PID_ATune();
 	void Create(float*, float*);                       	// * Constructor.  links the Autotune to a given PID
-    int Runtime();						   			   	// * Similar to the PID Compute function, returns non 0 when done
+    int Loop();						   			   	// * Similar to the PID Compute function, returns non 0 when done
 	void Cancel();									   	// * Stops the AutoTune	
 	
 	void SetOutputStep(float);						   	// * how far above and below the starting value will the output step?	
@@ -36,8 +36,7 @@ private:
 	float noiseBand;
 	int controlType;
 	bool running;
-	unsigned long peak1, peak2, lastTime;
-	int sampleTime;
+	unsigned long peak1, peak2, lastTime, sampleTime;
 	int nLookBack;
 	int peakType;
 	float lastInputs[101];

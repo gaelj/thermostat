@@ -9,7 +9,7 @@
 #define SWITCH_ON 0xff
 #define SWITCH_OFF 0
 
-#define BOILER_MIN_TIME      60000 // 1mn min time between boiler state changes
+#define BOILER_MIN_TIME      3 * 60000 // 3mn min time between boiler state changes
 
 #define CONTROL_GROUP_1      1  // Boiler group
 

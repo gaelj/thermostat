@@ -12,7 +12,7 @@
  */
 BoilerClass::BoilerClass() {
     lastBoilerChange = 0;
-    SetBoilerState(false);
+    currentBoilerState = 0;
 }
 
 /**
@@ -22,8 +22,11 @@ BoilerClass::BoilerClass() {
  */
 void BoilerClass::SetBoilerState(bool value) {
     if (currentBoilerState != value && (lastBoilerChange == 0 || (millis() >= lastBoilerChange + BOILER_MIN_TIME))) {
+        Serial.print("Set boiler ");
+        Serial.println(value);
         currentBoilerState = value;
         zunoSendToGroupSetValueCommand(CONTROL_GROUP_1, value > 0 ? SWITCH_ON : SWITCH_OFF);
+        lastBoilerChange = millis();
     }
 }
 

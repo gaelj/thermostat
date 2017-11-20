@@ -1,48 +1,48 @@
 #include "autopid.h"
 
-
-AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings): myPID(pid), aTune(atune), SETTINGS(settings) { }
-
-void AutoPidClass::ApplySettings() {
-    Serial.println("Load PID settings");
+/**
+ * @brief Constructor: Set default values
+ * 
+ * @param pid 
+ * @param atune 
+ * @param settings 
+ */
+AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings): myPID(pid), aTune(atune), SETTINGS(settings) {
     ATuneModeRemember = 2;
     tuning = false;    
-    Input = THERMOSTAT_DEFAULT;
+    Input = 0;
     Output = 0;
-
-    kd = SETTINGS->TheSettings.Kd;
-    kp = SETTINGS->TheSettings.Kp;
-    ki = SETTINGS->TheSettings.Ki;
-    aTuneStep = SETTINGS->TheSettings.ATuneStep;
-    aTuneNoise = SETTINGS->TheSettings.ATuneNoise;
-    aTuneLookBack = SETTINGS->TheSettings.ATuneLookBack;
-    aTuneStartValue = SETTINGS->TheSettings.ATuneStartValue;
-
-    //Tell the PID to range between 0 and the full window size
-    WindowSize = SAMPLE_TIME;
-    SampleTime = SAMPLE_TIME;
-    myPID->Create(&Input, &Output, &SETTINGS->TheSettings.Setpoint, kp, ki, kd, P_ON_E, DIRECT, 0, WindowSize, SampleTime);
-    aTune->Create(&Input, &Output);
-
-    //Setup the pid 
-    myPID->SetMode(AUTOMATIC);
-
-    if (tuning) {
-        tuning = false;
-        ChangeAutoTune();
-        tuning = true;
-    }
-    
-    serialTime = 0;
 }
 
+/**
+ * @brief Initialise the PID and Autotune objects
+ * 
+ */
+void AutoPidClass::ApplySettings() {
+    Serial.println("Create PID & autotune");
+
+    //Tell the PID to range between 0 and the full window size
+    myPID->Create(&Input, &Output, &SETTINGS->TheSettings.Setpoint,
+        SETTINGS->TheSettings.Kp, SETTINGS->TheSettings.Ki, SETTINGS->TheSettings.Kd,
+        P_ON_E, DIRECT, 0, SETTINGS->TheSettings.SampleTime);
+
+    aTune->Create(&Input, &Output);
+
+    //Setup the pid
+    myPID->SetMode(AUTOMATIC);
+}
+
+/**
+ * @brief Start or stop auto tune
+ * 
+ */
 void AutoPidClass::ChangeAutoTune() {
     if (!tuning) {
         //Set the output to the desired starting frequency.
-        myPID->SetOutput(aTuneStartValue);
-        aTune->SetNoiseBand(aTuneNoise);
-        aTune->SetOutputStep(aTuneStep);
-        aTune->SetLookbackSec((int)aTuneLookBack);
+        Output = SETTINGS->TheSettings.ATuneStartValue;
+        aTune->SetNoiseBand(SETTINGS->TheSettings.ATuneNoise);
+        aTune->SetOutputStep(SETTINGS->TheSettings.ATuneStep);
+        aTune->SetLookbackSec((int)SETTINGS->TheSettings.ATuneLookBack);
         AutoTuneHelper(true);
         tuning = true;
     } else {
@@ -53,6 +53,11 @@ void AutoPidClass::ChangeAutoTune() {
     }
 }
 
+/**
+ * @brief Saves the PID mode if true, restores it if false
+ * 
+ * @param start 
+ */
 void AutoPidClass::AutoTuneHelper(bool start) {
     if (start) 
         ATuneModeRemember = myPID->GetMode();
@@ -60,10 +65,14 @@ void AutoPidClass::AutoTuneHelper(bool start) {
         myPID->SetMode(ATuneModeRemember);
 }
 
+/**
+ * @brief Print an information string on Serial
+ * 
+ */
 void AutoPidClass::SerialPrintInfoString() {
-    Serial.print("s: "); Serial.print(myPID->GetSetpoint()); Serial.print(" ");
-    Serial.print("i: "); Serial.print(myPID->GetInput()); Serial.print(" ");
-    Serial.print("o: "); Serial.print(myPID->GetOutput()); Serial.print(" ");
+    Serial.print("s: "); Serial.print(SETTINGS->TheSettings.Setpoint); Serial.print(" ");
+    Serial.print("i: "); Serial.print(Input); Serial.print(" ");
+    Serial.print("o: "); Serial.print(Output); Serial.print(" ");
     if (tuning) {
         Serial.println("tuning mode");
     } else {
@@ -73,33 +82,58 @@ void AutoPidClass::SerialPrintInfoString() {
     }
 }
 
+/**
+ * @brief Start or stop autotuning
+ * 
+ * @param b 0 to stop, or 1 to start
+ */
 void AutoPidClass::SetAutoTune(char b) {
     if ((b == '1' && !tuning) || (b != '1' && tuning))
       ChangeAutoTune();
 }
 
-void AutoPidClass::Loop() {
+/**
+ * @brief Run autotune or get the values from the PID
+ * 
+ * @param input   the PID input value
+ * @return float  the PID output value
+ */
+float AutoPidClass::Loop(float input) {
+    Serial.println("autoPid loop");
+    Input = input;
     unsigned long now = millis();
-    
+
     if (tuning) {
-        byte val = aTune->Runtime();
+        Serial.println("autoPid tuning");
+        byte val = 0;
+        val = aTune->Loop();
         if (val != 0) {
             tuning = false;
         }
         if (!tuning) {
+            Serial.println("autoPid done");
             //we're done, set the tuning parameters
-            ki = aTune->GetKi();
-            kp = aTune->GetKp();
-            kd = aTune->GetKd();
+            float ki = aTune->GetKi();
+            float kp = aTune->GetKp();
+            float kd = aTune->GetKd();
+            /*
+            
+            if (SETTINGS->TheSettings.Kp != kp || SETTINGS->TheSettings.Ki != ki || SETTINGS->TheSettings.Kd != kd) {
+                SETTINGS->TheSettings.Kp = kp;
+                SETTINGS->TheSettings.Ki = ki;
+                SETTINGS->TheSettings.Kd = kd;
+                SETTINGS->PersistSettings();
+            }
             myPID->SetTunings(kp, ki, kd, myPID->pOn);
             AutoTuneHelper(false);
+            */
         }
     }
-    else myPID->Compute();
-    
-    //send if it's time
-    if (millis() > serialTime) {
-        SerialPrintInfoString();
-        serialTime += 500;
+    else {
+        Serial.println("autoPid compute");
+        myPID->Compute();
     }
+    
+    SerialPrintInfoString();
+    return Output;
 }

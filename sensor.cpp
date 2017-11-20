@@ -30,8 +30,6 @@ void SensorClass::ReadSensor() {
     byte forceRead = 0;
     realTemp = DhtSensor.readTemperature(forceRead);
     realHum = DhtSensor.readHumidity(forceRead);
-    Serial.println(realTemp);
-    Serial.println(realHum);
 }
 
 /**
@@ -79,7 +77,6 @@ SensorClass::SensorClass() {
 void SensorClass::ReadSensor() {
     byte forceRead = 0;
     realTemp = ds18b20.getTemperature(ROM_DATA(0));
-    Serial.println(realTemp);
 }
 /**
  * @brief Get the current room temperature

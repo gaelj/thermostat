@@ -7,21 +7,13 @@
 #include "thermo_control.h"
 
 /**
- * @brief Constructor. Does required initialisations
+ * @brief Constructor. Turns off the boiler
  * 
  */
-ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler):
-        AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler) { }
-
-/**
- * @brief Apply the settings
- * 
- */
-void ThermostatClass::ApplySettings() {
-    SetSetpoint(SETTINGS->TheSettings.Setpoint);
-    AUTOPID->ApplySettings();
-    AUTOPID->SetAutoTune(1);
-    windowStartTime = millis();
+ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler, HysteresisClass* hist):
+        AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler), HYST(hist) {
+    BOILER->SetBoilerState(false);
+    windowStartTime = 0;
 }
 
 /**
@@ -35,6 +27,7 @@ void ThermostatClass::SetSetpoint(float value) {
         SETTINGS->TheSettings.Setpoint = value;
         SETTINGS->PersistSettings();
     }
+    windowStartTime = 0;
 }
 
 /**
@@ -53,18 +46,40 @@ float ThermostatClass::GetSetpoint() {
  */
 int ThermostatClass::Loop() {
     SENSOR->ReadSensor();
-    
-    AUTOPID->Input = SENSOR->GetTemperature();
-    AUTOPID->Loop();
 
-    // turn the output pin on/off based on pid output
-    unsigned long now = millis();
-    if (now - windowStartTime > AUTOPID->WindowSize) {
+    float temp = 0;
+    float output = 0;
+    byte state = 0;
+    temp = SENSOR->GetTemperature();
+    
+    if (windowStartTime == 0 || ((millis() - windowStartTime) > SETTINGS->TheSettings.SampleTime)) {
         //time to shift the Relay Window
-        windowStartTime += AUTOPID->WindowSize;
+        output = HYST->Loop(temp);
+        windowStartTime = millis();
     }
-    bool state = ((now - windowStartTime) < AUTOPID->Output);
+    // output = AUTOPID->Loop(temp);
+    state = GetBoilerStateByWindowWidth(output);
     BOILER->SetBoilerState(state);
     
     return 0;
+}
+
+/**
+ * @brief Get the current boiler state based on autopid output
+ * 
+ * @return byte 
+ */
+byte ThermostatClass::GetBoilerStateByWindowWidth(float output) {
+    unsigned long now = millis();
+    bool state = ((now - windowStartTime) < output);
+    
+    Serial.print("Get boiler state");
+    Serial.print(" window: ");
+    Serial.print((now - windowStartTime) * 100 / SETTINGS->TheSettings.SampleTime);
+    Serial.print("% output: ");
+    Serial.print(output * 100 / SETTINGS->TheSettings.SampleTime);
+    Serial.print("% state:");
+    Serial.println(state);
+    
+    return state;
 }

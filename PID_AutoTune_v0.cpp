@@ -1,18 +1,18 @@
 
 #include <PID_AutoTune_v0.h>
 
-PID_ATune::PID_ATune() {
-
-}
+PID_ATune::PID_ATune() { }
 
 void PID_ATune::Create(float* Input, float* Output) {
 	input = Input;
 	output = Output;
-	controlType = 0; //default to PI
+	Ku = 0;
+	Pu = 1;
+	controlType = 0; //default to PI (instead of PID)
 	noiseBand = 0.5;
 	running = false;
 	oStep = 30;
-	SetLookbackSec(10);
+	SetLookbackSec(60);
 	lastTime = millis();
 }
 
@@ -20,7 +20,8 @@ void PID_ATune::Cancel() {
 	running = false;
 } 
  
-int PID_ATune::Runtime() {
+int PID_ATune::Loop() {
+    Serial.println("Autotune PID...");
 	justevaled = false;
 	if (peakCount > 9 && running) {
 		running = false;
@@ -28,7 +29,6 @@ int PID_ATune::Runtime() {
 		return 1;
 	}
 	unsigned long now = millis();
-	
 	if ((now - lastTime) < sampleTime) return false;
 	lastTime = now;
 	float refVal = *input;
@@ -43,7 +43,7 @@ int PID_ATune::Runtime() {
 		setpoint = refVal;
 		running = true;
 		outputStart = *output;
-		*output = outputStart+oStep;
+		*output = outputStart + oStep;
 	}
 	else {
 		if (refVal > absMax) absMax = refVal;
