@@ -19,10 +19,9 @@ HysteresisClass::HysteresisClass(SettingsClass* settings): SETTINGS(settings) {
 float HysteresisClass::Loop(const float input) {
     Serial.println("hyst loop");
     float output = 0;
-    if ((input < (SETTINGS->TheSettings.Setpoint - SETTINGS->TheSettings.HysteresisRange))
-        || (heatCycleIsActive && (
-            input < (SETTINGS->TheSettings.Setpoint /*+ SETTINGS->TheSettings.HysteresisRange*/))
-        )) {
+    float low = SETTINGS->TheSettings.Setpoint - SETTINGS->TheSettings.HysteresisRange;
+    float high = SETTINGS->TheSettings.Setpoint /*+ SETTINGS->TheSettings.HysteresisRange*/;
+    if (input < low || (heatCycleIsActive && input < high)) {
         Serial.print("hyst updt out ");
         Serial.print(SETTINGS->TheSettings.Setpoint);
         Serial.print(" ");
@@ -36,5 +35,7 @@ float HysteresisClass::Loop(const float input) {
             1.0);
         Serial.print(output);
     }
+    if (input >= high)
+        heatCycleIsActive = false;
     return output;
 }
