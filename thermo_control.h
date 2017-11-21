@@ -7,16 +7,18 @@
 #include "boiler.h"
 #include "autopid.h"
 #include "hysteresis.h"
+#include "thermostat_mode.h"
 
 #define SWITCH_ON 0xff
 #define SWITCH_OFF 0
 
 class ThermostatClass {
 public:
-    ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler, HysteresisClass* hist);
+    ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor,
+        BoilerClass* boiler, HysteresisClass* hist, ThermostatModeClass* mode);
     int Loop();
-    void SetSetpoint(float value);
-    float GetSetpoint();
+    void SetMode(ThermostatMode value);
+    ThermostatMode GetMode();
 
 private:
     AutoPidClass* AUTOPID;
@@ -24,7 +26,8 @@ private:
     SensorClass* SENSOR;
     BoilerClass* BOILER;
     HysteresisClass* HYST;
-    unsigned long windowStartTime;
+    ThermostatModeClass* MODE;
+    unsigned long WindowStartTime;
     byte GetBoilerStateByWindowWidth(float output);
     float LastOutput;
 };

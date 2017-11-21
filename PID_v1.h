@@ -19,7 +19,7 @@ public:
 
     // Commonly-used functions **************************************************************************
     PID(SettingsClass* settings);
-    void Create(float*, float*, float*,   // * constructor.  links the PID to the Input, Output, and 
+    void Create(float*, float*,           // * constructor.  links the PID to the Input, Output, and 
         float, float, float, int, int,    //   Setpoint.  Initial tuning parameters are also set here.
         float, float);                    // * clamps the output to a specific range. 0-255 by default, but
                                           //   it's likely the user will want to change this depending on
@@ -29,7 +29,7 @@ public:
 
     void SetMode(int Mode);               // * sets PID to either Manual (0) or Auto (non-0)
 
-    bool Compute();                       // * performs the PID calculation.  it should be
+    bool Compute(float mySetpoint);       // * performs the PID calculation.  it should be
                                           //   called every time loop() cycles. ON/OFF and
                                           //   calculation frequency can be set using SetMode
                                           //   SetSampleTime respectively
@@ -60,7 +60,7 @@ private:
 
     float* myInput;                       // * Pointers to the Input, Output, and Setpoint variables
     float* myOutput;                      //   This creates a hard link between the variables and the 
-    float* mySetpoint;                    //   PID, freeing the user from having to constantly tell us
+    //float* mySetpoint;                    //   PID, freeing the user from having to constantly tell us
                                           //   what these values are.  with pointers we'll just know.
 
     float dispKp;				          // * we'll hold on to the tuning parameters in user-entered 

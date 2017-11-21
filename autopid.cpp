@@ -7,7 +7,8 @@
  * @param atune 
  * @param settings 
  */
-AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings): myPID(pid), aTune(atune), SETTINGS(settings) {
+AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings, ThermostatModeClass* mode):
+        myPID(pid), aTune(atune), SETTINGS(settings), MODE(mode) {
     ATuneModeRemember = 2;
     tuning = false;    
     Input = 0;
@@ -22,7 +23,7 @@ void AutoPidClass::ApplySettings() {
     Serial.println("Create PID & autotune");
 
     //Tell the PID to range between 0 and the full window size
-    myPID->Create(&Input, &Output, &SETTINGS->TheSettings.Setpoint,
+    myPID->Create(&Input, &Output, 
         SETTINGS->TheSettings.Kp, SETTINGS->TheSettings.Ki, SETTINGS->TheSettings.Kd,
         P_ON_E, DIRECT, 0, SETTINGS->TheSettings.SampleTime);
 
@@ -70,7 +71,7 @@ void AutoPidClass::AutoTuneHelper(bool start) {
  * 
  */
 void AutoPidClass::SerialPrintInfoString() {
-    Serial.print("s: "); Serial.print(SETTINGS->TheSettings.Setpoint); Serial.print(" ");
+    Serial.print("s: "); Serial.print(SETTINGS->GetSetPoint(MODE->CurrentThermostatMode)); Serial.print(" ");
     Serial.print("i: "); Serial.print(Input); Serial.print(" ");
     Serial.print("o: "); Serial.print(Output); Serial.print(" ");
     if (tuning) {
@@ -116,8 +117,7 @@ float AutoPidClass::Loop(float input) {
             float ki = aTune->GetKi();
             float kp = aTune->GetKp();
             float kd = aTune->GetKd();
-            /*
-            
+
             if (SETTINGS->TheSettings.Kp != kp || SETTINGS->TheSettings.Ki != ki || SETTINGS->TheSettings.Kd != kd) {
                 SETTINGS->TheSettings.Kp = kp;
                 SETTINGS->TheSettings.Ki = ki;
@@ -126,12 +126,11 @@ float AutoPidClass::Loop(float input) {
             }
             myPID->SetTunings(kp, ki, kd, myPID->pOn);
             AutoTuneHelper(false);
-            */
         }
     }
     else {
         Serial.println("autoPid compute");
-        myPID->Compute();
+        myPID->Compute(SETTINGS->GetSetPoint(MODE->CurrentThermostatMode));
     }
     
     SerialPrintInfoString();

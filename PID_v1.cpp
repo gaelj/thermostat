@@ -13,12 +13,11 @@
  ***************************************************************************/
 PID::PID(SettingsClass* settings): SETTINGS(settings) { }
 
-void PID::Create(float* Input, float* Output, float* Setpoint, 
+void PID::Create(float* Input, float* Output, 
         float Kp, float Ki, float Kd, int POn, int ControllerDirection,
         float Min, float Max) {
     myOutput = Output;
     myInput = Input;
-    mySetpoint = Setpoint;
     inAuto = false;
 
     // Set output limits
@@ -42,7 +41,7 @@ void PID::Create(float* Input, float* Output, float* Setpoint,
  *   pid Output needs to be computed.  returns true when the output is computed,
  *   false when nothing has been done.
  **********************************************************************************/
-bool PID::Compute() {
+bool PID::Compute(float mySetpoint) {
     Serial.println("Compute PID...");
     if (!inAuto) return false;
     unsigned long now = millis();
@@ -51,7 +50,7 @@ bool PID::Compute() {
     if (timeChange >= SETTINGS->TheSettings.SampleTime) {
         //Compute all the working error variables
         float input = *myInput;
-        float error = *mySetpoint - input;
+        float error = mySetpoint - input;
         float dInput = (input - lastInput);
         outputSum += (ki * error);
 

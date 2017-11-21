@@ -24,9 +24,8 @@
 #include "boiler.h"
 #include "hysteresis.h"
 #include "thermo_control.h"
+#include "thermostat_mode.h"
 
-// For some cases use UART (Serial0/Serial1)
-// It's a most comfortable way for debugging
 #define MY_SERIAL Serial
 
 #define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER)    ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)	
@@ -46,29 +45,29 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 SettingsClass SETTINGS;
+ThermostatModeClass MODE;
 PID pid(&SETTINGS);
 PID_ATune atune;
 HysteresisClass HIST(&SETTINGS);
 SensorClass SENSOR;
 BoilerClass BOILER;
-AutoPidClass AUTOPID(&pid, &atune, &SETTINGS);
-ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST);
+AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
+ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 
-byte boiler = SWITCH_OFF;
 float lastTemp = 200;
 byte lastBoiler = 1;
-byte lastSetpoint = 200;
-unsigned long lastRefresh;
-unsigned long const delayRefresh = 30000;
+ThermostatMode lastMode = Absent;
+unsigned long lastZwaveRefresh;
+unsigned long const zaveRefreshDelay = 30000;
 bool settingsError = false;
 
+/**
+* @brief Main setup function
+*
+*/
 void setup() {
     MY_SERIAL.begin(115200);
     MY_SERIAL.println("**** Setup");
-    
-    // DEBUG !
-    //SETTINGS.LoadDefaults();
-    //SETTINGS.PersistSettings();
 
     if (!SETTINGS.RestoreSettings()) {
         SETTINGS.LoadDefaults();
@@ -76,26 +75,28 @@ void setup() {
             settingsError = true;
     }
 
-    lastRefresh = 0;
+    lastZwaveRefresh = 0;
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
 }
 
+/**
+* @brief Main loop function
+*
+*/
 void loop() {
     MY_SERIAL.println("**** Loop");
     if (!settingsError) {
         THERM.Loop();
 
-        //boiler = (boiler == SWITCH_OFF) ? SWITCH_ON : SWITCH_OFF;
-        //BOILER.SetBoilerState(boiler);
-        if (millis() > lastRefresh + delayRefresh) {
+        if (millis() > lastZwaveRefresh + zaveRefreshDelay || lastZwaveRefresh == 0) {
             MY_SERIAL.println("Refresh Zwave");
-            lastRefresh = millis();
-            if (THERM.GetSetpoint() != lastSetpoint) {
-                lastSetpoint = THERM.GetSetpoint();
+            lastZwaveRefresh = millis();
+            if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
+                lastMode = THERM.GetMode();
                 zunoSendReport(1); // report setpoint
             }
-            if (SENSOR.GetTemperature() != lastTemp) {
+            if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
                 MY_SERIAL.print("Refr temp! ");
                 MY_SERIAL.println(SENSOR.GetTemperature());
                 lastTemp = SENSOR.GetTemperature();
@@ -127,7 +128,15 @@ void loop() {
 void ZSetSetpoint(byte value) {
     //MY_SERIAL.print("ZSetSetpoint to ");
     //MY_SERIAL.println(value);
-    THERM.SetSetpoint(value);
+    Serial.print("Set Setpoint to ");
+    switch (MODE.Decode(value)) {
+        case Frost: Serial.println("Frost"); break;
+        case Absent: Serial.println("Absent"); break;
+        case Night: Serial.println("Night"); break;
+        case Day: Serial.println("Day"); break;
+        case Warm: Serial.println("Warm"); break;
+    }
+    THERM.SetMode(MODE.Decode(value));
 }
 
 /**
@@ -136,8 +145,8 @@ void ZSetSetpoint(byte value) {
  */
 byte ZGetSetpoint() {
     //MY_SERIAL.print("ZGetSetpoint ");
-    //MY_SERIAL.println((byte)THERM.GetSetpoint());
-    return (byte)THERM.GetSetpoint();
+    //MY_SERIAL.println((byte)THERM.GetMode());
+    return (byte)MODE.Encode(THERM.GetMode());
 }
 
 /**

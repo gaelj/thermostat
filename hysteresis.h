@@ -6,8 +6,8 @@
 
 class HysteresisClass {
 public:
-    HysteresisClass(SettingsClass* settings);
-    float Loop(const float);
+    HysteresisClass(SettingsClass*);
+    float Loop(const float, const float);
 
 private:
     SettingsClass* SETTINGS;

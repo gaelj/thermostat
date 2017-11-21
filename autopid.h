@@ -8,7 +8,7 @@
 
 class AutoPidClass {
 public:
-    AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings);
+    AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings, ThermostatModeClass* mode);
     void ApplySettings();
     float Loop(float);
     void SetAutoTune(char b);
@@ -17,6 +17,7 @@ private:
     PID* myPID;
     PID_ATune* aTune;
     SettingsClass* SETTINGS;
+    ThermostatModeClass* MODE;
     float Input;
     float Output;
     void ChangeAutoTune();

@@ -2,28 +2,29 @@
 
 /**
  * @brief Constructor: Set default values
- * 
- * @param settings 
+ *
+ * @param settings
  */
-HysteresisClass::HysteresisClass(SettingsClass* settings): SETTINGS(settings) {
+HysteresisClass::HysteresisClass(SettingsClass* settings) : SETTINGS(settings) {
     Serial.println("*** Init Hyst");
     heatCycleIsActive = false;
 }
 
 /**
  * @brief Run autotune or get the values from the PID
- * 
- * @param input   the PID input value
- * @return float  the PID output value
+ *
+ * @param input   the measured temperature
+ * @param setPoint   the desired temperature
+ * @return float  the output value, ranging between 0 and 1
  */
-float HysteresisClass::Loop(const float input) {
+float HysteresisClass::Loop(const float input, const float setPoint) {
     Serial.println("hyst loop");
     float output = 0;
-    float low = SETTINGS->TheSettings.Setpoint - SETTINGS->TheSettings.HysteresisRange;
-    float high = SETTINGS->TheSettings.Setpoint /*+ SETTINGS->TheSettings.HysteresisRange*/;
+    float low = setPoint - SETTINGS->TheSettings.HysteresisRange;
+    float high = setPoint /*+ SETTINGS->TheSettings.HysteresisRange*/;
     if (input < low || (heatCycleIsActive && input < high)) {
         Serial.print("hyst updt out ");
-        Serial.print(SETTINGS->TheSettings.Setpoint);
+        Serial.print(setPoint);
         Serial.print(" ");
         Serial.print(SETTINGS->TheSettings.HysteresisRange);
         Serial.print(" ");
@@ -31,7 +32,7 @@ float HysteresisClass::Loop(const float input) {
         Serial.print(" -> ");
 
         output = min(
-            ((SETTINGS->TheSettings.Setpoint - input) / 5.0),
+            ((setPoint - input) / 5.0),
             1.0);
         Serial.print(output);
     }
