@@ -78,7 +78,7 @@ bool PID::Compute(float mySetpoint) {
 
         return true;
     }
-    else return false;
+    return false;
 }
 
 /* SetTunings(...)*************************************************************

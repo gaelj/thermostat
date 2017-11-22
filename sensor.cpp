@@ -26,7 +26,7 @@ SensorClass::SensorClass() {
 void SensorClass::ReadSensor() {
     byte forceRead = 0;
     realTemp = DhtSensor.readTemperature(forceRead);
-    realHum = DhtSensor.readHumidity(forceRead);
+    //realHum = DhtSensor.readHumidity(forceRead);
 }
 
 /**
@@ -42,10 +42,10 @@ float SensorClass::GetTemperature() {
  * @brief Get the current room humidity
  * 
  * @return float   the room humidity
- */
+ *//*
 float SensorClass::GetHumidity() {
     return realHum;
-}
+}*/
 #endif
 
 
@@ -72,7 +72,6 @@ SensorClass::SensorClass() {
  * 
  */
 void SensorClass::ReadSensor() {
-    byte forceRead = 0;
     realTemp = ds18b20.getTemperature(ROM_DATA(0));
 }
 /**
@@ -88,9 +87,9 @@ float SensorClass::GetTemperature() {
  * @brief Get the current room humidity
  * 
  * @return float   the room humidity
- */
+ *//*
 float SensorClass::GetHumidity() {
     return 0;
-}
+}*/
 
 #endif
