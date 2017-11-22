@@ -67,8 +67,6 @@ bool settingsError = false;
 */
 void setup() {
     MY_SERIAL.begin(115200);
-    MY_SERIAL.println("**** Setup");
-
     if (!SETTINGS.RestoreSettings()) {
         SETTINGS.LoadDefaults();
         if (!SETTINGS.PersistSettings())
@@ -85,30 +83,28 @@ void setup() {
 *
 */
 void loop() {
-    MY_SERIAL.println("**** Loop");
     if (!settingsError) {
         THERM.Loop();
 
         if (millis() > lastZwaveRefresh + zaveRefreshDelay || lastZwaveRefresh == 0) {
-            MY_SERIAL.println("Refresh Zwave");
             lastZwaveRefresh = millis();
+            MY_SERIAL.println("ZR");
             if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
+                MY_SERIAL.println("SP");
                 lastMode = THERM.GetMode();
                 zunoSendReport(1); // report setpoint
             }
             if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
-                MY_SERIAL.print("Refr temp! ");
-                MY_SERIAL.println(SENSOR.GetTemperature());
+                MY_SERIAL.println("T");
                 lastTemp = SENSOR.GetTemperature();
                 zunoSendReport(2); // report temperature
             }
         }
     }
     else {
-        MY_SERIAL.println("Stng er");
+        MY_SERIAL.println("Stg er");
     }
 
-    MY_SERIAL.println("Wait");
     delay(1000);
     /*
     MY_SERIAL.print("Wait");
@@ -128,7 +124,7 @@ void loop() {
 void ZSetSetpoint(byte value) {
     //MY_SERIAL.print("ZSetSetpoint to ");
     //MY_SERIAL.println(value);
-    Serial.print("Set Setpoint to ");
+    Serial.print("Sp=");
     switch (MODE.Decode(value)) {
         case Frost: Serial.println("Frost"); break;
         case Absent: Serial.println("Absent"); break;
