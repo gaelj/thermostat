@@ -58,7 +58,7 @@ int ThermostatClass::Loop() {
         WindowStartTime = millis();
     }
     // output = AUTOPID->Loop(temp);
-    bool state = GetBoilerStateByWindowWidth(LastOutput) && (temp < setPoint);
+    bool state = GetBoilerStateByWindowWidth(LastOutput, temp, setPoint);
     BOILER->SetBoilerState(state);
 
     return 0;
@@ -71,10 +71,14 @@ int ThermostatClass::Loop() {
  *
  * @return byte
  */
-bool ThermostatClass::GetBoilerStateByWindowWidth(const float output) {
+bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const float temp, const float setPoint) {
     const unsigned long now = millis();
-    const bool state = ((now - WindowStartTime) < (output * SETTINGS->TheSettings.SampleTime));
+    const bool state = ((now - WindowStartTime) < (output * SETTINGS->TheSettings.SampleTime)) && (temp < setPoint);
 
+    Serial.print("Temp: ");
+    Serial.print(temp);
+    Serial.print("Setpoint: ");
+    Serial.print(setPoint);
     Serial.print("Get boiler state");
     Serial.print(" window: ");
     Serial.print((now - WindowStartTime) * 100 / SETTINGS->TheSettings.SampleTime);

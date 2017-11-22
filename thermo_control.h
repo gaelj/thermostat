@@ -28,7 +28,7 @@ private:
     HysteresisClass* HYST;
     ThermostatModeClass* MODE;
     unsigned long WindowStartTime;
-    bool GetBoilerStateByWindowWidth(float output);
+    bool GetBoilerStateByWindowWidth(float, float, float);
     float LastOutput;
 };
 
