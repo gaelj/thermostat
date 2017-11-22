@@ -1,13 +1,17 @@
 /**
- * @brief Thermostat on Z-uino
- * 
- */
+* @brief Thermostat on Z-uino
+*
+*/
 
+#include "sensor.h"
+
+#include <EEPROM.h>
 #include <ZUNO_legacy_channels.h>
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
+#include <ZUNO_OLED_I2C.h>
+#include <ZUNO_OLED_FONT_NUMB16.h>
 
-#include "sensor.h"
 #ifdef TEMP_DHT
 #include <ZUNO_DHT.h>
 #endif
@@ -16,7 +20,6 @@
 #include <ZUNO_DS18B20.h>
 #endif
 
-#include <EEPROM.h>
 #include <PID_v1.h>
 #include <PID_AutoTune_v0.h>
 
@@ -36,23 +39,27 @@ ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 //                          1 channel to get the real temperature,
 //                          1 channel to get the real humidity
 ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
-                   ,ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
-                   //,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
-                    );
+,ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
+//,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
+);
 
 // Setup associations - we have 1 group for boiler on/off behavior
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
+OLED oled;
 
-SettingsClass SETTINGS;
+settings_s TheSettings;
+SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
-PID pid(&SETTINGS);
-PID_ATune atune;
 HysteresisClass HIST(&SETTINGS);
 SensorClass SENSOR;
 BoilerClass BOILER;
+/*
+PID pid(&SETTINGS);
+PID_ATune atune;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
+*/
 
 float lastTemp = 200;
 byte lastBoiler = 1;
@@ -61,21 +68,26 @@ unsigned long lastZwaveRefresh;
 unsigned long const zaveRefreshDelay = 30000;
 bool settingsError = false;
 
+
 /**
 * @brief Main setup function
 *
 */
 void setup() {
+    /*
     MY_SERIAL.begin(115200);
-    if (!SETTINGS.RestoreSettings()) {
-        SETTINGS.LoadDefaults();
-        if (!SETTINGS.PersistSettings())
-            settingsError = true;
-    }
+    //if (!SETTINGS.RestoreSettings()) {
+    SETTINGS.LoadDefaults();
+    //if (!SETTINGS.PersistSettings())
+    //    settingsError = true;
+    //}
 
     lastZwaveRefresh = 0;
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
+    */
+    oled.begin();
+    oled.clrscr();
 }
 
 /**
@@ -83,107 +95,118 @@ void setup() {
 *
 */
 void loop() {
-    if (!settingsError) {
-        THERM.Loop();
-
-        if (millis() > lastZwaveRefresh + zaveRefreshDelay || lastZwaveRefresh == 0) {
-            lastZwaveRefresh = millis();
-            MY_SERIAL.println("ZR");
-            if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
-                MY_SERIAL.println("SP");
-                lastMode = THERM.GetMode();
-                zunoSendReport(1); // report setpoint
-            }
-            if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
-                MY_SERIAL.println("T");
-                lastTemp = SENSOR.GetTemperature();
-                zunoSendReport(2); // report temperature
-            }
-        }
-    }
-    else {
-        MY_SERIAL.println("Stg er");
-    }
-
-    delay(1000);
     /*
-    MY_SERIAL.print("Wait");
-    while (millis() - loopStart < SAMPLE_TIME) {
-        delay(1000);
-        MY_SERIAL.print(".");
+    //if (!settingsError) {
+    THERM.Loop();
+
+    if (millis() > lastZwaveRefresh + zaveRefreshDelay || lastZwaveRefresh == 0) {
+    lastZwaveRefresh = millis();
+    MY_SERIAL.println("ZR");
+    if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
+    MY_SERIAL.println("SP");
+    lastMode = THERM.GetMode();
+    zunoSendReport(1); // report setpoint
     }
-    MY_SERIAL.println();
+    if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
+    MY_SERIAL.println("T");
+    lastTemp = SENSOR.GetTemperature();
+    zunoSendReport(2); // report temperature
+    }
+    }
+    //}
+    //else {
+    //    MY_SERIAL.println("Stg er");
+    //}
     */
+    SENSOR.ReadSensor();
+
+    oled.clrscr();
+    delay(5);
+    oled.setFont(0);
+    oled.gotoXY(0, 0);
+    oled.print(F"Thermostat");
+    oled.gotoXY(26, 3);
+    // Some "digital" font (only to print a numbers)
+    oled.setFont(zuno_font_numbers16);
+    // Draw Fix point number
+    oled.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
+    
+    delay(1000);
 }
 
 
 /**
- * @brief Zwave Setter for Desired Temperature
- * 
- */
+* @brief Zwave Setter for Desired Temperature
+*
+*/
 void ZSetSetpoint(byte value) {
+    /*
     //MY_SERIAL.print("ZSetSetpoint to ");
     //MY_SERIAL.println(value);
     Serial.print("Sp=");
     switch (MODE.Decode(value)) {
-        case Frost: Serial.println("Frost"); break;
-        case Absent: Serial.println("Absent"); break;
-        case Night: Serial.println("Night"); break;
-        case Day: Serial.println("Day"); break;
-        case Warm: Serial.println("Warm"); break;
+    case Frost: Serial.println("Frost"); break;
+    case Absent: Serial.println("Absent"); break;
+    case Night: Serial.println("Night"); break;
+    case Day: Serial.println("Day"); break;
+    case Warm: Serial.println("Warm"); break;
     }
     THERM.SetMode(MODE.Decode(value));
+    */
 }
 
 /**
- * @brief Zwave Getter for Desired Temperature
- * 
- */
+* @brief Zwave Getter for Desired Temperature
+*
+*/
 byte ZGetSetpoint() {
+    /*
     //MY_SERIAL.print("ZGetSetpoint ");
     //MY_SERIAL.println((byte)THERM.GetMode());
-    return (byte)MODE.Encode(THERM.GetMode());
+    return (byte)MODE.Encode(THERM.GetMode());*/
+    return 0;
 }
 
 /**
- * @brief Zwave Getter for Real Temperature
- * 
- */
+* @brief Zwave Getter for Real Temperature
+*
+*/
 word ZGetRealTemperature() {
+    /*
     //MY_SERIAL.print("ZGetRealTemp ");
     word temp = (word)(SENSOR.GetTemperature() * 100);
     //MY_SERIAL.println(temp);
-    return temp;
+    return temp;*/
+    return 0;
 }
 
 /**
- * @brief Zwave Getter for Real Humidity
- * 
- *//*
+* @brief Zwave Getter for Real Humidity
+*
+*//*
 byte RealHumidityGetter() {
-    return fromFloat(THERM.GetHumidity());
-}
-*/
+return fromFloat(THERM.GetHumidity());
+}*/
 
 /**
- * @brief Universal handler for all the channels
- * 
- * @remark See callback_data variable 
- *         We use word params for all 
- *         We use zero based index of the channel instead of typical 
- *         Getter/Setter index of Z-Uno. 
- *         See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h 
- *
- * @param  
- */
+* @brief Universal handler for all the channels
+*
+* @remark See callback_data variable
+*         We use word params for all
+*         We use zero based index of the channel instead of typical
+*         Getter/Setter index of Z-Uno.
+*         See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h
+*
+* @param
+*/
 void zunoCallback(void) {
     //MY_SERIAL.println();
     //MY_SERIAL.print("Callback type ");
     //MY_SERIAL.println(callback_data.type);
-    switch(callback_data.type) {
-        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
-        case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
-        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
-        default: break;
+    switch (callback_data.type) {
+    case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
+    case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
+    case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
+    default: break;
     }
 }

@@ -28,8 +28,8 @@ void PID::Create(float* Input, float* Output,
     SetControllerDirection(ControllerDirection);
     SetTunings(Kp, Ki, Kd, POn);
 
-    if (millis() > SETTINGS->TheSettings.SampleTime)
-        lastTime = millis() - SETTINGS->TheSettings.SampleTime;
+    if (millis() > SETTINGS->TheSettings->SampleTime)
+        lastTime = millis() - SETTINGS->TheSettings->SampleTime;
     else
         lastTime = 0;
 }
@@ -47,7 +47,7 @@ bool PID::Compute(float mySetpoint) {
     unsigned long now = millis();
     unsigned long timeChange = (now - lastTime);
 
-    if (timeChange >= SETTINGS->TheSettings.SampleTime) {
+    if (timeChange >= SETTINGS->TheSettings->SampleTime) {
         //Compute all the working error variables
         float input = *myInput;
         float error = mySetpoint - input;
@@ -94,7 +94,7 @@ void PID::SetTunings(float Kp, float Ki, float Kd, int POn) {
 
     dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
-    float SampleTimeInSec = float(SETTINGS->TheSettings.SampleTime) / 1000;
+    float SampleTimeInSec = float(SETTINGS->TheSettings->SampleTime) / 1000;
     kp = Kp;
     ki = Ki * SampleTimeInSec;
     kd = Kd / SampleTimeInSec;

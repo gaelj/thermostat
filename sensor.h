@@ -13,8 +13,8 @@
 #ifdef TEMP_DS18B20
 #include <ZUNO_OneWire.h>
 #include <ZUNO_DS18B20.h>
-#define ROM_SIZE 8
-#define MAX_SENSOR 1
+#define DS18B20_ROM_SIZE 8
+#define DS18B20_MAX_SENSOR 1
 #endif
 
 class SensorClass {

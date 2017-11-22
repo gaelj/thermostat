@@ -56,8 +56,8 @@ float SensorClass::GetHumidity() {
 OneWire ow(PIN_TEMP_SENSOR);
 DS18B20Sensor ds18b20(&ow);
 
-byte sensor_roms[ROM_SIZE*MAX_SENSOR];
-#define ROM_DATA(index) (&sensor_roms[index*ROM_SIZE])
+byte sensor_roms[DS18B20_ROM_SIZE * DS18B20_MAX_SENSOR];
+#define DS18B20_ROM_DATA(index) (&sensor_roms[index * DS18B20_ROM_SIZE])
 
 /**
  * @brief Constructor. Does required initialisations and turns the boiler off
@@ -72,7 +72,7 @@ SensorClass::SensorClass() {
  * 
  */
 void SensorClass::ReadSensor() {
-    realTemp = ds18b20.getTemperature(ROM_DATA(0));
+    realTemp = ds18b20.getTemperature(DS18B20_ROM_DATA(0));
 }
 /**
  * @brief Get the current room temperature

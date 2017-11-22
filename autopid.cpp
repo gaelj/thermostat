@@ -24,8 +24,8 @@ void AutoPidClass::ApplySettings() {
 
     //Tell the PID to range between 0 and the full window size
     myPID->Create(&Input, &Output, 
-        SETTINGS->TheSettings.Kp, SETTINGS->TheSettings.Ki, SETTINGS->TheSettings.Kd,
-        P_ON_E, DIRECT, 0, SETTINGS->TheSettings.SampleTime);
+        SETTINGS->TheSettings->Kp, SETTINGS->TheSettings->Ki, SETTINGS->TheSettings->Kd,
+        P_ON_E, DIRECT, 0, SETTINGS->TheSettings->SampleTime);
 
     aTune->Create(&Input, &Output);
 
@@ -40,10 +40,10 @@ void AutoPidClass::ApplySettings() {
 void AutoPidClass::ChangeAutoTune() {
     if (!tuning) {
         //Set the output to the desired starting frequency.
-        Output = SETTINGS->TheSettings.ATuneStartValue;
-        aTune->SetNoiseBand(SETTINGS->TheSettings.ATuneNoise);
-        aTune->SetOutputStep(SETTINGS->TheSettings.ATuneStep);
-        aTune->SetLookbackSec((int)SETTINGS->TheSettings.ATuneLookBack);
+        Output = SETTINGS->TheSettings->ATuneStartValue;
+        aTune->SetNoiseBand(SETTINGS->TheSettings->ATuneNoise);
+        aTune->SetOutputStep(SETTINGS->TheSettings->ATuneStep);
+        aTune->SetLookbackSec((int)SETTINGS->TheSettings->ATuneLookBack);
         AutoTuneHelper(true);
         tuning = true;
     } else {
@@ -118,10 +118,10 @@ float AutoPidClass::Loop(float input) {
             float kp = aTune->GetKp();
             float kd = aTune->GetKd();
 
-            if (SETTINGS->TheSettings.Kp != kp || SETTINGS->TheSettings.Ki != ki || SETTINGS->TheSettings.Kd != kd) {
-                SETTINGS->TheSettings.Kp = kp;
-                SETTINGS->TheSettings.Ki = ki;
-                SETTINGS->TheSettings.Kd = kd;
+            if (SETTINGS->TheSettings->Kp != kp || SETTINGS->TheSettings->Ki != ki || SETTINGS->TheSettings->Kd != kd) {
+                SETTINGS->TheSettings->Kp = kp;
+                SETTINGS->TheSettings->Ki = ki;
+                SETTINGS->TheSettings->Kd = kd;
                 SETTINGS->PersistSettings();
             }
             myPID->SetTunings(kp, ki, kd, myPID->pOn);
