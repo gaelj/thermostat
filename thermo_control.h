@@ -5,7 +5,6 @@
 #include "settings.h"
 #include "sensor.h"
 #include "boiler.h"
-#include "autopid.h"
 #include "hysteresis.h"
 #include "thermostat_mode.h"
 
@@ -14,14 +13,13 @@
 
 class ThermostatClass {
 public:
-    ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor,
+    ThermostatClass(SettingsClass* settings, SensorClass* sensor,
         BoilerClass* boiler, HysteresisClass* hist, ThermostatModeClass* mode);
     int Loop();
     void SetMode(ThermostatMode value);
     ThermostatMode GetMode();
 
 private:
-    AutoPidClass* AUTOPID;
     SettingsClass* SETTINGS;
     SensorClass* SENSOR;
     BoilerClass* BOILER;

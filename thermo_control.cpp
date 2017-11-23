@@ -10,9 +10,9 @@
   * @brief Constructor. Turns off the boiler
   *
   */
-ThermostatClass::ThermostatClass(AutoPidClass* autoPid, SettingsClass* settings, SensorClass* sensor,
+ThermostatClass::ThermostatClass(SettingsClass* settings, SensorClass* sensor,
         BoilerClass* boiler, HysteresisClass* hist, ThermostatModeClass* mode) :
-    AUTOPID(autoPid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler), HYST(hist), MODE(mode) {
+        SETTINGS(settings), SENSOR(sensor), BOILER(boiler), HYST(hist), MODE(mode) {
     BOILER->SetBoilerState(false);
     WindowStartTime = 0;
     LastOutput = 0;
@@ -73,7 +73,8 @@ int ThermostatClass::Loop() {
  */
 bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const float temp, const float setPoint) {
     const unsigned long now = millis();
-    const bool state = ((now - WindowStartTime) < (output * SETTINGS->TheSettings->SampleTime)) && (temp < setPoint);
+    const bool state = ((now - WindowStartTime) < (output * SETTINGS->TheSettings->SampleTime))
+        && (temp < setPoint);
     /*
     for (int i = 0; i < 2; i++) {
         Serial.print("T: ");

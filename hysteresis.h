@@ -6,11 +6,11 @@
 
 class HysteresisClass {
 public:
-    HysteresisClass(SettingsClass*);
+    HysteresisClass(settings_s*);
     float Loop(const float, const float);
 
 private:
-    SettingsClass* SETTINGS;
+    settings_s* TheSettings;
     bool heatCycleIsActive;
 };
 

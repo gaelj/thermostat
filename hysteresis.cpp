@@ -5,7 +5,7 @@
  *
  * @param settings
  */
-HysteresisClass::HysteresisClass(SettingsClass* settings) : SETTINGS(settings) {
+HysteresisClass::HysteresisClass(settings_s* settings) : TheSettings(settings) {
     heatCycleIsActive = false;
 }
 
@@ -18,8 +18,8 @@ HysteresisClass::HysteresisClass(SettingsClass* settings) : SETTINGS(settings) {
  */
 float HysteresisClass::Loop(const float input, const float setPoint) {
     float output = 0;
-    float low = setPoint - SETTINGS->TheSettings->HysteresisRange;
-    float high = setPoint /*+ SETTINGS->TheSettings->HysteresisRange*/;
+    float low = setPoint - TheSettings->HysteresisRange;
+    float high = setPoint /*+ TheSettings->HysteresisRange*/;
     if (input < low || (heatCycleIsActive && input < high)) {
         output = min(
             ((setPoint - input) / 3.0),

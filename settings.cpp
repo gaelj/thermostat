@@ -48,10 +48,8 @@ bool SettingsClass::RestoreSettings() {
     Serial.println("Restore stgs");
     EEPROM.get(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
     DumpSettings();
-    if (GetCrc8((byte*)&TheSettings, sizeof(settings_s) - 1) != TheSettings->crc8 || TheSettings->Version != E2P_VERSION) {
-        return false;
-    }
-    return true;
+    return GetCrc8((byte*)&TheSettings, sizeof(settings_s) - 1) == TheSettings->crc8
+            && TheSettings->Version == E2P_VERSION;
 }
 
 /**

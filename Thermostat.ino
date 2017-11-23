@@ -20,14 +20,15 @@
 #include <ZUNO_DS18B20.h>
 #endif
 
-#include <PID_v1.h>
-#include <PID_AutoTune_v0.h>
+//#include <PID_v1.h>
+//#include <PID_AutoTune_v0.h>
 
 #include "settings.h"
 #include "boiler.h"
 #include "hysteresis.h"
 #include "thermo_control.h"
 #include "thermostat_mode.h"
+#include "icons.h"
 
 #define MY_SERIAL Serial
 
@@ -39,8 +40,8 @@ ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 //                          1 channel to get the real temperature,
 //                          1 channel to get the real humidity
 ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
-,ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
-//,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
+    , ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
+    //,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
 );
 
 // Setup associations - we have 1 group for boiler on/off behavior
@@ -51,7 +52,7 @@ OLED oled;
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
-HysteresisClass HIST(&SETTINGS);
+HysteresisClass HIST(&TheSettings);
 SensorClass SENSOR;
 BoilerClass BOILER;
 /*
@@ -60,21 +61,47 @@ PID_ATune atune;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
+ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 
 float lastTemp = 200;
-byte lastBoiler = 1;
+float lastDrawnTemp = 200;
+byte lastBoilerState = 1;
 ThermostatMode lastMode = Absent;
 unsigned long lastZwaveRefresh;
 unsigned long const zaveRefreshDelay = 30000;
 bool settingsError = false;
 
+/**
+* @brief Draw the screen
+*
+*/
+void DrawDisplay() {
+    oled.clrscr();
+    delay(5);
+    oled.setFont(zuno_font_numbers16);
+    oled.gotoXY(13, 0);
+    oled.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
+
+    oled.gotoXY(13, 4);
+    oled.fixPrint((long)(SETTINGS.GetSetPoint(MODE.CurrentThermostatMode) * 10), 1);
+
+    if (BOILER.GetBoilerState()) {
+        oled.gotoXY(80, 4);
+        oled.writeData(flame_data);
+    }
+    oled.gotoXY(80, 0);
+    switch (THERM.GetMode()) {
+    case Day:
+        oled.writeData(sun_data);
+        break;
+    }
+}
 
 /**
 * @brief Main setup function
 *
 */
 void setup() {
-    /*
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
     SETTINGS.LoadDefaults();
@@ -85,7 +112,7 @@ void setup() {
     lastZwaveRefresh = 0;
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
-    */
+
     oled.begin();
     oled.clrscr();
 }
@@ -95,42 +122,44 @@ void setup() {
 *
 */
 void loop() {
-    /*
     //if (!settingsError) {
     THERM.Loop();
-
-    if (millis() > lastZwaveRefresh + zaveRefreshDelay || lastZwaveRefresh == 0) {
-    lastZwaveRefresh = millis();
-    MY_SERIAL.println("ZR");
+    bool drawDisplay = false;
     if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
-    MY_SERIAL.println("SP");
-    lastMode = THERM.GetMode();
-    zunoSendReport(1); // report setpoint
+        MY_SERIAL.println("SP");
+        lastMode = THERM.GetMode();
+        zunoSendReport(1); // report setpoint
+        drawDisplay = true;
     }
-    if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
-    MY_SERIAL.println("T");
-    lastTemp = SENSOR.GetTemperature();
-    zunoSendReport(2); // report temperature
+
+    if ((millis() > (lastZwaveRefresh + zaveRefreshDelay)) || (lastZwaveRefresh == 0)) {
+        lastZwaveRefresh = millis();
+        MY_SERIAL.println("ZR");
+        if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
+            MY_SERIAL.println("T");
+            lastTemp = SENSOR.GetTemperature();
+            zunoSendReport(2); // report temperature
+        }
     }
+
+    if (SENSOR.GetTemperature() != lastDrawnTemp) {
+        lastDrawnTemp = SENSOR.GetTemperature();
+        drawDisplay = true;
     }
+
+    if (BOILER.GetBoilerState() != lastBoilerState) {
+        lastBoilerState = BOILER.GetBoilerState();
+        drawDisplay = true;
+    }
+
+    if (drawDisplay)
+        DrawDisplay();
+
     //}
     //else {
     //    MY_SERIAL.println("Stg er");
     //}
-    */
-    SENSOR.ReadSensor();
 
-    oled.clrscr();
-    delay(5);
-    oled.setFont(0);
-    oled.gotoXY(0, 0);
-    oled.print(F"Thermostat");
-    oled.gotoXY(26, 3);
-    // Some "digital" font (only to print a numbers)
-    oled.setFont(zuno_font_numbers16);
-    // Draw Fix point number
-    oled.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
-    
     delay(1000);
 }
 
@@ -140,19 +169,17 @@ void loop() {
 *
 */
 void ZSetSetpoint(byte value) {
-    /*
     //MY_SERIAL.print("ZSetSetpoint to ");
     //MY_SERIAL.println(value);
     Serial.print("Sp=");
     switch (MODE.Decode(value)) {
-    case Frost: Serial.println("Frost"); break;
-    case Absent: Serial.println("Absent"); break;
-    case Night: Serial.println("Night"); break;
-    case Day: Serial.println("Day"); break;
-    case Warm: Serial.println("Warm"); break;
+        case Frost: Serial.println("Frost"); break;
+        case Absent: Serial.println("Absent"); break;
+        case Night: Serial.println("Night"); break;
+        case Day: Serial.println("Day"); break;
+        case Warm: Serial.println("Warm"); break;
     }
     THERM.SetMode(MODE.Decode(value));
-    */
 }
 
 /**
@@ -160,11 +187,9 @@ void ZSetSetpoint(byte value) {
 *
 */
 byte ZGetSetpoint() {
-    /*
     //MY_SERIAL.print("ZGetSetpoint ");
     //MY_SERIAL.println((byte)THERM.GetMode());
-    return (byte)MODE.Encode(THERM.GetMode());*/
-    return 0;
+    return (byte)MODE.Encode(THERM.GetMode());
 }
 
 /**
@@ -172,12 +197,10 @@ byte ZGetSetpoint() {
 *
 */
 word ZGetRealTemperature() {
-    /*
     //MY_SERIAL.print("ZGetRealTemp ");
     word temp = (word)(SENSOR.GetTemperature() * 100);
     //MY_SERIAL.println(temp);
-    return temp;*/
-    return 0;
+    return temp;
 }
 
 /**
