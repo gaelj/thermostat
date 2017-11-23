@@ -91,9 +91,11 @@ void DrawDisplay() {
     }
     oled.gotoXY(80, 0);
     switch (THERM.GetMode()) {
-    case Day:
-        oled.writeData(sun_data);
-        break;
+    case Day: oled.writeData(sun_data); break;
+    case Night: oled.writeData(moon_data); break;
+    case Absent: oled.writeData(absent_data); break;
+    case Frost: oled.writeData(snow_data); break;
+    case Warm: oled.writeData(hot_data); break;
     }
 }
 
