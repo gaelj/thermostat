@@ -7,4 +7,6 @@
 #define SCL_PIN   9
 #define SDA_PIN  10
 
+#define buttonPin 8
+
 #endif /* THERMOSTAT_PINOUT_H_ */

@@ -65,7 +65,7 @@ int ThermostatClass::Loop() {
 }
 
 /**
- * @brief Get the current boiler state based on autopid output
+ * @brief Get the current boiler state based on output as PWM value and current time position in the time frame
  *
  * @param output   boiler output [0->1]
  *

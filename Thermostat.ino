@@ -3,6 +3,7 @@
 *
 */
 
+#include "pinout.h"
 #include "sensor.h"
 
 #include <EEPROM.h>
@@ -48,7 +49,6 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 OLED oled;
-
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
@@ -71,11 +71,14 @@ unsigned long lastZwaveRefresh;
 unsigned long const zaveRefreshDelay = 30000;
 bool settingsError = false;
 
+int buttonState = HIGH;             // the current reading from the input pin
+
 /**
 * @brief Draw the screen
 *
 */
 void DrawDisplay() {
+
     // clear screen
     oled.clrscr();
     delay(5);
@@ -111,6 +114,7 @@ void DrawDisplay() {
 *
 */
 void setup() {
+    pinMode(buttonPin, INPUT);
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
     SETTINGS.LoadDefaults();
@@ -131,24 +135,46 @@ void setup() {
 *
 */
 void loop() {
+    // read the state of the switch into a local variable:
+    int reading = digitalRead(buttonPin);
+    if (reading != buttonState) {
+        buttonState = reading;
+        if (buttonState == LOW) {
+            ThermostatMode newMode;
+            switch (THERM.GetMode()) {
+                case Frost: newMode = Absent; break;
+                case Absent: newMode = Night; break;
+                case Night: newMode = Day; break;
+                case Day: newMode = Warm; break;
+                case Warm: newMode = Frost; break;
+            }
+            THERM.SetMode(newMode);
+            zunoSendReport(1); // report setpoint
+        }
+    }
+
     //if (!settingsError) {
     THERM.Loop();
     bool drawDisplay = false;
     if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
         MY_SERIAL.println("SP");
         lastMode = THERM.GetMode();
-        zunoSendReport(1); // report setpoint
+        //zunoSendReport(1); // report setpoint
         drawDisplay = true;
     }
 
     if ((millis() > (lastZwaveRefresh + zaveRefreshDelay)) || (lastZwaveRefresh == 0)) {
         lastZwaveRefresh = millis();
+        /*
         MY_SERIAL.println("ZR");
         if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
             MY_SERIAL.println("T");
             lastTemp = SENSOR.GetTemperature();
             zunoSendReport(2); // report temperature
         }
+        */
+        //zunoSendReport(1); // report setpoint
+        zunoSendReport(2); // report temperature
     }
 
     if (SENSOR.GetTemperature() != lastDrawnTemp) {
@@ -169,7 +195,7 @@ void loop() {
     //    MY_SERIAL.println("Stg er");
     //}
 
-    delay(1000);
+    delay(50);
 }
 
 
@@ -180,15 +206,18 @@ void loop() {
 void ZSetSetpoint(byte value) {
     //MY_SERIAL.print("ZSetSetpoint to ");
     //MY_SERIAL.println(value);
-    Serial.print("Sp=");
-    switch (MODE.Decode(value)) {
-        case Frost: Serial.println("Frost"); break;
-        case Absent: Serial.println("Absent"); break;
-        case Night: Serial.println("Night"); break;
-        case Day: Serial.println("Day"); break;
-        case Warm: Serial.println("Warm"); break;
+    if (THERM.GetMode() != MODE.Decode(value)) {
+        Serial.print("Sp=");
+        switch (MODE.Decode(value)) {
+            case Frost: Serial.println("Frost"); break;
+            case Absent: Serial.println("Absent"); break;
+            case Night: Serial.println("Night"); break;
+            case Day: Serial.println("Day"); break;
+            case Warm: Serial.println("Warm"); break;
+        }
+        THERM.SetMode(MODE.Decode(value));
+        zunoSendReport(1); // report setpoint
     }
-    THERM.SetMode(MODE.Decode(value));
 }
 
 /**
@@ -236,9 +265,9 @@ void zunoCallback(void) {
     //MY_SERIAL.print("Callback type ");
     //MY_SERIAL.println(callback_data.type);
     switch (callback_data.type) {
-    case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
-    case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
-    case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
-    default: break;
+        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
+        case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
+        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
+        default: break;
     }
 }
