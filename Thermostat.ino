@@ -48,6 +48,7 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 // Setup associations - we have 1 group for boiler on/off behavior
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
+
 OLED oled;
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
@@ -72,6 +73,10 @@ unsigned long const zaveRefreshDelay = 30000;
 bool settingsError = false;
 
 int buttonState = HIGH;             // the current reading from the input pin
+int boilerBlinkDelay = 500;
+unsigned long lastBoilerBlinkChange;
+bool boilerBlinkState = false;
+bool boilerBlinking = false;
 
 /**
 * @brief Draw the screen
@@ -110,11 +115,26 @@ void DrawDisplay() {
 }
 
 /**
+* @brief Set R, G, B LED values
+*
+*/
+void displayColor(byte r, byte g, byte b) {
+    digitalWrite(PIN_LED_R, r);
+    digitalWrite(PIN_LED_G, g);
+    digitalWrite(PIN_LED_B, b);
+}
+
+/**
 * @brief Main setup function
 *
 */
 void setup() {
     pinMode(buttonPin, INPUT);
+    pinMode(PIN_LED_R, OUTPUT);
+    pinMode(PIN_LED_G, OUTPUT);
+    pinMode(PIN_LED_B, OUTPUT);
+    displayColor(LOW, LOW, LOW);
+
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
     SETTINGS.LoadDefaults();
@@ -128,6 +148,8 @@ void setup() {
 
     oled.begin();
     oled.clrscr();
+
+    lastBoilerBlinkChange = millis();
 }
 
 /**
@@ -135,11 +157,13 @@ void setup() {
 *
 */
 void loop() {
+    THERM.Loop();
+
     // read the state of the switch into a local variable:
     int reading = digitalRead(buttonPin);
     if (reading != buttonState) {
         buttonState = reading;
-        if (buttonState == LOW) {
+        if (buttonState == LOW) {            
             ThermostatMode newMode;
             switch (THERM.GetMode()) {
                 case Frost: newMode = Absent; break;
@@ -149,32 +173,40 @@ void loop() {
                 case Warm: newMode = Frost; break;
             }
             THERM.SetMode(newMode);
+            displayColor(HIGH, HIGH, HIGH);
+            lastBoilerBlinkChange = millis() + (boilerBlinkDelay / 2);
             zunoSendReport(1); // report setpoint
         }
     }
 
+    // boiler state
+    boilerBlinking = BOILER.GetBoilerState();
+    
+    if (millis() - lastBoilerBlinkChange > boilerBlinkDelay) {
+        lastBoilerBlinkChange = millis();
+        boilerBlinkState = !boilerBlinkState;
+    }
+
+    if (!boilerBlinking || boilerBlinkState) {
+        switch (THERM.GetMode()) {
+            case Absent: displayColor(LOW, HIGH, HIGH); break;
+            case Night: displayColor(HIGH, LOW, HIGH); break;
+            case Day: displayColor(HIGH, HIGH, LOW); break;
+            case Warm: displayColor(HIGH, LOW, LOW); break;
+            case Frost: displayColor(LOW, LOW, HIGH); break;
+        }
+    }
+    else {
+        displayColor(LOW, LOW, LOW);
+    }
+
     //if (!settingsError) {
-    THERM.Loop();
     bool drawDisplay = false;
     if (THERM.GetMode() != lastMode || lastZwaveRefresh == 0) {
-        MY_SERIAL.println("SP");
+        // MY_SERIAL.println("SP");
         lastMode = THERM.GetMode();
         //zunoSendReport(1); // report setpoint
         drawDisplay = true;
-    }
-
-    if ((millis() > (lastZwaveRefresh + zaveRefreshDelay)) || (lastZwaveRefresh == 0)) {
-        lastZwaveRefresh = millis();
-        /*
-        MY_SERIAL.println("ZR");
-        if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
-            MY_SERIAL.println("T");
-            lastTemp = SENSOR.GetTemperature();
-            zunoSendReport(2); // report temperature
-        }
-        */
-        //zunoSendReport(1); // report setpoint
-        zunoSendReport(2); // report temperature
     }
 
     if (SENSOR.GetTemperature() != lastDrawnTemp) {
@@ -190,12 +222,23 @@ void loop() {
     if (drawDisplay)
         DrawDisplay();
 
-    //}
-    //else {
-    //    MY_SERIAL.println("Stg er");
-    //}
-
-    delay(50);
+    if ((millis() > (lastZwaveRefresh + zaveRefreshDelay)) || (lastZwaveRefresh == 0)) {
+        lastZwaveRefresh = millis();
+        /*
+        MY_SERIAL.println("ZR");
+        if (SENSOR.GetTemperature() != lastTemp || lastZwaveRefresh == 0) {
+        MY_SERIAL.println("T");
+        lastTemp = SENSOR.GetTemperature();
+        zunoSendReport(2); // report temperature
+        }
+        */
+        //zunoSendReport(1); // report setpoint
+        displayColor(HIGH, HIGH, HIGH);
+        lastBoilerBlinkChange = millis() + (boilerBlinkDelay / 2);
+        zunoSendReport(2); // report temperature
+    } else {
+        delay(50);
+    }
 }
 
 
@@ -207,6 +250,7 @@ void ZSetSetpoint(byte value) {
     //MY_SERIAL.print("ZSetSetpoint to ");
     //MY_SERIAL.println(value);
     if (THERM.GetMode() != MODE.Decode(value)) {
+        /*
         Serial.print("Sp=");
         switch (MODE.Decode(value)) {
             case Frost: Serial.println("Frost"); break;
@@ -215,6 +259,7 @@ void ZSetSetpoint(byte value) {
             case Day: Serial.println("Day"); break;
             case Warm: Serial.println("Warm"); break;
         }
+        */
         THERM.SetMode(MODE.Decode(value));
         zunoSendReport(1); // report setpoint
     }

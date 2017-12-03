@@ -9,4 +9,8 @@
 
 #define buttonPin 8
 
+#define PIN_LED_R 14
+#define PIN_LED_G 15
+#define PIN_LED_B 16
+
 #endif /* THERMOSTAT_PINOUT_H_ */
