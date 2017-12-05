@@ -4,6 +4,7 @@
 */
 
 #include "pinout.h"
+#include "led.h"
 #include "sensor.h"
 
 #include <EEPROM.h>
@@ -50,6 +51,9 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 OLED oled;
+LedClass LED1(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
+LedClass LED2(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
+LedClass LED3(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
@@ -115,25 +119,14 @@ void DrawDisplay() {
 }
 
 /**
-* @brief Set R, G, B LED values
-*
-*/
-void displayColor(byte r, byte g, byte b) {
-    digitalWrite(PIN_LED_R, r);
-    digitalWrite(PIN_LED_G, g);
-    digitalWrite(PIN_LED_B, b);
-}
-
-/**
 * @brief Main setup function
 *
 */
 void setup() {
-    pinMode(buttonPin, INPUT);
-    pinMode(PIN_LED_R, OUTPUT);
-    pinMode(PIN_LED_G, OUTPUT);
-    pinMode(PIN_LED_B, OUTPUT);
-    displayColor(LOW, LOW, LOW);
+    pinMode(PIN_BUTTON, INPUT);
+    LED1.Begin();
+    LED2.Begin();
+    LED3.Begin();
 
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
@@ -160,7 +153,7 @@ void loop() {
     THERM.Loop();
 
     // read the state of the switch into a local variable:
-    int reading = digitalRead(buttonPin);
+    int reading = digitalRead(PIN_BUTTON);
     if (reading != buttonState) {
         buttonState = reading;
         if (buttonState == LOW) {            
@@ -173,7 +166,7 @@ void loop() {
                 case Warm: newMode = Frost; break;
             }
             THERM.SetMode(newMode);
-            displayColor(HIGH, HIGH, HIGH);
+            LED1.DisplayColor(COLOR_WHITE);
             lastBoilerBlinkChange = millis() + (boilerBlinkDelay / 2);
             zunoSendReport(1); // report setpoint
         }
@@ -189,15 +182,15 @@ void loop() {
 
     if (!boilerBlinking || boilerBlinkState) {
         switch (THERM.GetMode()) {
-            case Absent: displayColor(LOW, HIGH, HIGH); break;
-            case Night: displayColor(HIGH, LOW, HIGH); break;
-            case Day: displayColor(HIGH, HIGH, LOW); break;
-            case Warm: displayColor(HIGH, LOW, LOW); break;
-            case Frost: displayColor(LOW, LOW, HIGH); break;
+            case Absent: LED1.DisplayColor(COLOR_YELLOW); break;
+            case Night: LED1.DisplayColor(COLOR_MAGENTA); break;
+            case Day: LED1.DisplayColor(COLOR_GREEN); break;
+            case Warm: LED1.DisplayColor(COLOR_RED); break;
+            case Frost: LED1.DisplayColor(COLOR_BLUE); break;
         }
     }
     else {
-        displayColor(LOW, LOW, LOW);
+        LED1.DisplayColor(COLOR_BLACK);
     }
 
     //if (!settingsError) {
@@ -233,7 +226,7 @@ void loop() {
         }
         */
         //zunoSendReport(1); // report setpoint
-        displayColor(HIGH, HIGH, HIGH);
+        LED1.DisplayColor(COLOR_WHITE);
         lastBoilerBlinkChange = millis() + (boilerBlinkDelay / 2);
         zunoSendReport(2); // report temperature
     } else {
