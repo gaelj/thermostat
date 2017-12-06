@@ -23,4 +23,5 @@ public:
 private:
     byte PinR, PinG, PinB;
 };
+
 #endif // LED_H
