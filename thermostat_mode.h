@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#define THERMOSTAT_MODE_COUNT 5
+
 /**
 * @brief Possible modes for the thermostat
 *
@@ -14,6 +16,7 @@ enum ThermostatMode {
     Day,
     Warm
 };
+
 
 /**
 * @brief Access to the settings

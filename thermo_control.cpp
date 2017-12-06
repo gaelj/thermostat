@@ -53,7 +53,7 @@ int ThermostatClass::Loop() {
 
     if (WindowStartTime == 0 || ((millis() - WindowStartTime) > SETTINGS->TheSettings->SampleTime)) {
         //time to shift the Relay Window
-        Serial.println("NW");
+        //Serial.println("NW");
         LastOutput = HYST->Loop(temp, setPoint);
         WindowStartTime = millis();
     }

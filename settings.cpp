@@ -45,7 +45,7 @@ byte SettingsClass::GetCrc8(byte* data, byte count) {
 * @return false  The settings are invalid (wrong CRC or E2P version has changed)
 */
 bool SettingsClass::RestoreSettings() {
-    Serial.println("Restore stgs");
+    //Serial.println("Restore stgs");
     EEPROM.get(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
     DumpSettings();
     return GetCrc8((byte*)&TheSettings, sizeof(settings_s) - 1) == TheSettings->crc8
@@ -57,7 +57,7 @@ bool SettingsClass::RestoreSettings() {
 *
 */
 void SettingsClass::LoadDefaults() {
-    Serial.println("Reset stgs");
+    //Serial.println("Reset stgs");
     // Invalid data - reset all
     TheSettings->Version = E2P_VERSION;
     TheSettings->Setpoint_Frost = 5.0;
@@ -81,13 +81,13 @@ void SettingsClass::LoadDefaults() {
 *
 */
 bool SettingsClass::PersistSettings() {
-    Serial.print("Persist stgs ");
+    //Serial.print("Persist stgs ");
     Serial.println((int)sizeof(settings_s));
 
     TheSettings->crc8 = GetCrc8((byte*)&TheSettings, sizeof(settings_s) - 1);
     EEPROM.put(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
     if (!RestoreSettings()) {
-        Serial.println("Persist check error");
+        //Serial.println("Persist check error");
         return false;
     }
     return true;
@@ -98,7 +98,7 @@ bool SettingsClass::PersistSettings() {
 *
 */
 void SettingsClass::DumpSettings() {
-    Serial.println("============ Settings:");
+    //Serial.println("============ Settings:");
     Serial.println(TheSettings->Version);
     Serial.println(TheSettings->Setpoint_Frost);
     Serial.println(TheSettings->Setpoint_Absent);
@@ -115,5 +115,5 @@ void SettingsClass::DumpSettings() {
     Serial.println(TheSettings->SampleTime);
     Serial.println(TheSettings->HysteresisRange);
     Serial.println(TheSettings->crc8);
-    Serial.println("============");
+    //Serial.println("============");
 }

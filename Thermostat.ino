@@ -32,6 +32,7 @@
 #include "icons.h"
 #include "led.h"
 #include "timer.h"
+#include "button.h"
 
 #define MY_SERIAL Serial
 
@@ -55,6 +56,8 @@ OLED oled;
 LedClass LED1(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
 LedClass LED2(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
 LedClass LED3(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
+ButtonClass BUTTON1(PIN_BUTTON1);
+ButtonClass BUTTON2(PIN_BUTTON2);
 TimerClass LED_BLINK_TIMER(500);
 TimerClass LED_FLASH_TIMER(100);
 TimerClass ZWAVE_TIMER(30000);
@@ -77,7 +80,6 @@ float lastDrawnTemp = 200;
 byte lastBoilerState = 1;
 ThermostatMode lastMode = Absent;
 unsigned long const zaveRefreshDelay = 30000;
-int buttonState = HIGH;             // the current reading from the input pin
 bool ledBlinkState = false;
 byte ledColor = COLOR_BLACK;
 
@@ -117,27 +119,11 @@ void DrawDisplay() {
     }
 }
 
-bool ButtonHasBeenPressed() {
-    int reading = digitalRead(PIN_BUTTON);
-    if (reading != buttonState) {
-        buttonState = reading;
-        if (buttonState == LOW) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /**
 * @brief Main setup function
 *
 */
 void setup() {
-    pinMode(PIN_BUTTON, INPUT);
-    LED1.Begin();
-    LED2.Begin();
-    LED3.Begin();
-
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
     SETTINGS.LoadDefaults();
@@ -148,12 +134,19 @@ void setup() {
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
 
+    BUTTON1.Init();
+    BUTTON2.Init();
+    
+    LED1.Begin();
+    LED2.Begin();
+    LED3.Begin();
+
     oled.begin();
     oled.clrscr();
 
-    ZWAVE_TIMER.Init();
     LED_BLINK_TIMER.IsActive = false;
     LED_FLASH_TIMER.IsActive = false;
+    ZWAVE_TIMER.IsActive = false;
 }
 
 /**
@@ -162,31 +155,30 @@ void setup() {
 */
 void loop() {
     // run the thermostat loop
-    if (ZWAVE_TIMER.IsElapsed()) {
+    if (!ZWAVE_TIMER.IsActive) {
         ZWAVE_TIMER.Init();
-        LED1.DisplayColor(COLOR_WHITE);
+        LED1.DisplayColor(COLOR_CYAN);
         THERM.Loop();
         //zunoSendReport(1); // report setpoint
         zunoSendReport(2); // report temperature
     }
 
     // handle on button pressed event
-    if (ButtonHasBeenPressed()) {
-        ThermostatMode newMode;
-        switch (THERM.GetMode()) {
-            case Frost: newMode = Absent; break;
-            case Absent: newMode = Night; break;
-            case Night: newMode = Day; break;
-            case Day: newMode = Warm; break;
-            case Warm: newMode = Frost; break;
-        }
-        THERM.SetMode(newMode);
+    int change = 0;
+    if (BUTTON1.ButtonHasBeenPressed())
+        change = 1;
+    if (BUTTON2.ButtonHasBeenPressed())
+        change = -1;
+    if (change != 0) {
+        int newMode = ((int)THERM.GetMode() + change) % THERMOSTAT_MODE_COUNT;
+        if (newMode < 0) newMode = THERMOSTAT_MODE_COUNT - 1;
+        THERM.SetMode(ThermostatMode(newMode));
         //LED_FLASH_TIMER.Init();
         zunoSendReport(1); // report setpoint
     }
     
     // handle is button pressed state
-    if (buttonState == LOW)
+    if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
         LED_FLASH_TIMER.Init();
 
     // boiler state changed
@@ -250,13 +242,13 @@ void ZSetSetpoint(byte value) {
     //MY_SERIAL.println(value);
     if (THERM.GetMode() != MODE.Decode(value)) {
         /*
-        Serial.print("Sp=");
+        MY_SERIAL.print("Sp=");
         switch (MODE.Decode(value)) {
-            case Frost: Serial.println("Frost"); break;
-            case Absent: Serial.println("Absent"); break;
-            case Night: Serial.println("Night"); break;
-            case Day: Serial.println("Day"); break;
-            case Warm: Serial.println("Warm"); break;
+            case Frost: MY_SERIAL.println("Frost"); break;
+            case Absent: MY_SERIAL.println("Absent"); break;
+            case Night: MY_SERIAL.println("Night"); break;
+            case Day: MY_SERIAL.println("Day"); break;
+            case Warm: MY_SERIAL.println("Warm"); break;
         }
         */
         THERM.SetMode(MODE.Decode(value));
