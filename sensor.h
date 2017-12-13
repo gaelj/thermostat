@@ -1,8 +1,8 @@
 #ifndef SENSOR_H
 #define SENSOR_H
 
-#define TEMP_DS18B20
-#undef  TEMP_DHT
+#undef  TEMP_DS18B20
+#define TEMP_DHT
 
 #include <Arduino.h>
 #include "pinout.h"
