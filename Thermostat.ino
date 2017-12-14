@@ -53,13 +53,14 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 OLED oled;
-LedClass LED1(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
-LedClass LED2(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
-LedClass LED3(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
+LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
+LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
+LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
 TimerClass LED_BLINK_TIMER(500);
 TimerClass LED_FLASH_TIMER(100);
+TimerClass SENSOR_TIMER(5000);
 TimerClass ZWAVE_TIMER(30000);
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
@@ -136,10 +137,10 @@ void setup() {
 
     BUTTON1.Init();
     BUTTON2.Init();
-    
+
+    LED0.Begin();
     LED1.Begin();
     LED2.Begin();
-    LED3.Begin();
 
     oled.begin();
     oled.clrscr();
@@ -147,6 +148,7 @@ void setup() {
     LED_BLINK_TIMER.IsActive = false;
     LED_FLASH_TIMER.IsActive = false;
     ZWAVE_TIMER.IsActive = false;
+    SENSOR_TIMER.IsActive = false;
 }
 
 /**
@@ -155,9 +157,12 @@ void setup() {
 */
 void loop() {
     // run the thermostat loop
-    if (!ZWAVE_TIMER.IsActive) {
+    if (ZWAVE_TIMER.IsElapsed() || !ZWAVE_TIMER.IsActive) {
+        MY_SERIAL.println("Loop !");
         ZWAVE_TIMER.Init();
+        LED0.DisplayColor(COLOR_CYAN);
         LED1.DisplayColor(COLOR_CYAN);
+        LED2.DisplayColor(COLOR_CYAN);
         THERM.Loop();
         //zunoSendReport(1); // report setpoint
         zunoSendReport(2); // report temperature
@@ -178,8 +183,8 @@ void loop() {
     }
     
     // handle is button pressed state
-    if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
-        LED_FLASH_TIMER.Init();
+    // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
+    //     LED_FLASH_TIMER.Init();
 
     // boiler state changed
     if (LED_BLINK_TIMER.IsActive != BOILER.GetBoilerState()) {
@@ -201,13 +206,16 @@ void loop() {
     else if (!LED_BLINK_TIMER.IsActive || !ledBlinkState) {
         switch (THERM.GetMode()) {
             case Absent: ledColor = COLOR_YELLOW; break;
-            case Night: ledColor = COLOR_MAGENTA; break;
-            case Day: ledColor = COLOR_GREEN; break;
-            case Warm: ledColor = COLOR_RED; break;
-            case Frost: ledColor = COLOR_BLUE; break;
+            case Night:  ledColor = COLOR_MAGENTA; break;
+            case Day:    ledColor = COLOR_GREEN; break;
+            case Warm:   ledColor = COLOR_RED; break;
+            case Frost:  ledColor = COLOR_BLUE; break;
         }
     }
+
+    LED0.DisplayColor(ledColor);
     LED1.DisplayColor(ledColor);
+    LED2.DisplayColor(ledColor);
 
     // Refresh display
     bool drawDisplay = false;
@@ -216,9 +224,15 @@ void loop() {
         drawDisplay = true;
     }
 
-    if (SENSOR.GetTemperature() != lastDrawnTemp) {
-        lastDrawnTemp = SENSOR.GetTemperature();
-        drawDisplay = true;
+    if (SENSOR_TIMER.IsElapsed() || !SENSOR_TIMER.IsActive) {
+        SENSOR_TIMER.Init();
+        SENSOR.ReadSensor();
+        MY_SERIAL.println(SENSOR.GetTemperature());
+        MY_SERIAL.println(SENSOR.GetHumidity());
+        if (SENSOR.GetTemperature() != lastDrawnTemp) {
+            lastDrawnTemp = SENSOR.GetTemperature();
+            drawDisplay = true;
+        }
     }
 
     if (BOILER.GetBoilerState() != lastBoilerState) {
@@ -230,6 +244,40 @@ void loop() {
         DrawDisplay();
 
     delay(10);
+    /*
+    LED0.DisplayColor(COLOR_BLACK);
+    LED1.DisplayColor(COLOR_BLACK);
+    LED2.DisplayColor(COLOR_BLACK);
+    delay(200);
+    LED0.DisplayColor(COLOR_BLUE);
+    LED1.DisplayColor(COLOR_BLUE);
+    LED2.DisplayColor(COLOR_BLUE);
+    delay(200);
+    LED0.DisplayColor(COLOR_CYAN);
+    LED1.DisplayColor(COLOR_CYAN);
+    LED2.DisplayColor(COLOR_CYAN);
+    delay(200);
+    LED0.DisplayColor(COLOR_GREEN);
+    LED1.DisplayColor(COLOR_GREEN);
+    LED2.DisplayColor(COLOR_GREEN);
+    delay(200);
+    LED0.DisplayColor(COLOR_MAGENTA);
+    LED1.DisplayColor(COLOR_MAGENTA);
+    LED2.DisplayColor(COLOR_MAGENTA);
+    delay(200);
+    LED0.DisplayColor(COLOR_RED);
+    LED1.DisplayColor(COLOR_RED);
+    LED2.DisplayColor(COLOR_RED);
+    delay(200);
+    LED0.DisplayColor(COLOR_YELLOW);
+    LED1.DisplayColor(COLOR_YELLOW);
+    LED2.DisplayColor(COLOR_YELLOW);
+    delay(200);
+    LED0.DisplayColor(COLOR_WHITE);
+    LED1.DisplayColor(COLOR_WHITE);
+    LED2.DisplayColor(COLOR_WHITE);
+    delay(200);
+    */
 }
 
 
