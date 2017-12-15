@@ -56,7 +56,7 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 OLED oled;
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
-TimerClass LED_BLINK_TIMER(1000);
+TimerClass LED_BLINK_TIMER(1500);
 TimerClass LED_FLASH_TIMER(100);
 TimerClass LED_ANIMATION_TIMER(250);
 TimerClass SENSOR_TIMER(15000);
@@ -152,7 +152,7 @@ void loop() {
     if (ZWAVE_TIMER.IsElapsed()) {
         MY_SERIAL.println("Loop !");
         ZWAVE_TIMER.Init();
-        LEDS.FlashAll(COLOR_CYAN);
+        LEDS.FlashAll(COLOR_WHITE);
         THERM.Loop();
         //zunoSendReport(1); // report setpoint
         zunoSendReport(2); // report temperature
@@ -172,8 +172,8 @@ void loop() {
     }
     
     // handle is button pressed state
-    if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
-        LEDS.FlashAll(COLOR_WHITE);
+    // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
+    //     LEDS.FlashAll(COLOR_WHITE);
 
     // boiler state changed
     LEDS.SetBlinkingState(BOILER.GetBoilerState());
@@ -209,40 +209,6 @@ void loop() {
     LEDS.DrawAll(THERM.GetMode());
 
     delay(10);
-    /*
-    LED0.DisplayColor(COLOR_BLACK);
-    LED1.DisplayColor(COLOR_BLACK);
-    LED2.DisplayColor(COLOR_BLACK);
-    delay(200);
-    LED0.DisplayColor(COLOR_BLUE);
-    LED1.DisplayColor(COLOR_BLUE);
-    LED2.DisplayColor(COLOR_BLUE);
-    delay(200);
-    LED0.DisplayColor(COLOR_CYAN);
-    LED1.DisplayColor(COLOR_CYAN);
-    LED2.DisplayColor(COLOR_CYAN);
-    delay(200);
-    LED0.DisplayColor(COLOR_GREEN);
-    LED1.DisplayColor(COLOR_GREEN);
-    LED2.DisplayColor(COLOR_GREEN);
-    delay(200);
-    LED0.DisplayColor(COLOR_MAGENTA);
-    LED1.DisplayColor(COLOR_MAGENTA);
-    LED2.DisplayColor(COLOR_MAGENTA);
-    delay(200);
-    LED0.DisplayColor(COLOR_RED);
-    LED1.DisplayColor(COLOR_RED);
-    LED2.DisplayColor(COLOR_RED);
-    delay(200);
-    LED0.DisplayColor(COLOR_YELLOW);
-    LED1.DisplayColor(COLOR_YELLOW);
-    LED2.DisplayColor(COLOR_YELLOW);
-    delay(200);
-    LED0.DisplayColor(COLOR_WHITE);
-    LED1.DisplayColor(COLOR_WHITE);
-    LED2.DisplayColor(COLOR_WHITE);
-    delay(200);
-    */
 }
 
 

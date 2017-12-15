@@ -9,9 +9,9 @@ public:
     void Init();
     bool IsElapsed();
     bool IsActive;
+    unsigned long DurationInMillis;
 
 private:
-    unsigned long DurationInMillis;
     unsigned long StartTime;
 };
 

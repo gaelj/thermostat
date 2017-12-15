@@ -26,6 +26,7 @@ void LedControlClass::FlashAll(byte color)
 {
     FLASH_TIMER->Init();
     flashCounter = FLASHES;
+    flashColor = color;
 }
 
 void LedControlClass::SetBlinkingState(bool state)
@@ -52,18 +53,28 @@ void LedControlClass::SetAnimation(int direction)
 
 void LedControlClass::DrawAll(ThermostatMode mode)
 {
-    // toggle blink
+    // Toggle blink
     if (BLINK_TIMER->IsActive && BLINK_TIMER->IsElapsed()) {
         ledBlinkState = !ledBlinkState;
+        if (ledBlinkState)
+            FlashAll(COLOR_RED);
         BLINK_TIMER->Init();
     }
 
-    // Set LED color
-    ledColor = COLOR_BLACK;
+    // Set base color according to mode
+    switch (mode) {
+        case Absent: ledColor = COLOR_YELLOW; break;
+        case Night:  ledColor = COLOR_MAGENTA; break;
+        case Day:    ledColor = COLOR_GREEN; break;
+        case Warm:   ledColor = COLOR_CYAN; break;
+        case Frost:  ledColor = COLOR_BLUE; break;
+    }
+
+    // Flash LED
     if (FLASH_TIMER->IsActive) {
         if (!FLASH_TIMER->IsElapsed()) {
             if (flashCounter % 2 == 1)
-                ledColor = COLOR_WHITE;
+                ledColor = flashColor;
         }
         else {
             flashCounter--;
@@ -71,15 +82,8 @@ void LedControlClass::DrawAll(ThermostatMode mode)
                 FLASH_TIMER->Init();
         }
     }
-    else if (!BLINK_TIMER->IsActive || !ledBlinkState) {
-        switch (mode) {
-            case Absent: ledColor = COLOR_YELLOW; break;
-            case Night:  ledColor = COLOR_MAGENTA; break;
-            case Day:    ledColor = COLOR_GREEN; break;
-            case Warm:   ledColor = COLOR_RED; break;
-            case Frost:  ledColor = COLOR_BLUE; break;
-        }
-    }
+
+    // Draw animations
     ledColor0 = ledColor;
     ledColor1 = ledColor; 
     ledColor2 = ledColor;

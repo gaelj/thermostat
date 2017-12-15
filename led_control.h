@@ -33,6 +33,7 @@ private:
     byte ledColor0 = COLOR_BLACK;
     byte ledColor1 = COLOR_BLACK;
     byte ledColor2 = COLOR_BLACK;
+    byte flashColor = COLOR_BLACK;
     byte flashCounter = 0;
     int animationDirection = 0;
     int animationIndex = 0;
