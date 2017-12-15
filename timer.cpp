@@ -7,7 +7,11 @@ TimerClass::TimerClass(unsigned long durationInMillis) {
 }
 
 void TimerClass::Init() {
-    StartTime = millis();
+    // start from the last timer end timestamp if possible
+    if (millis() > StartTime + DurationInMillis && millis() < StartTime + (DurationInMillis * 2))
+        StartTime += DurationInMillis;
+    else
+        StartTime = millis();
     IsActive = true;
 }
 
