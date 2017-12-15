@@ -52,21 +52,24 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 // Setup associations - we have 1 group for boiler on/off behavior
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
-
-OLED oled;
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
+
 TimerClass LED_BLINK_TIMER(1500);
 TimerClass LED_FLASH_TIMER(100);
 TimerClass LED_ANIMATION_TIMER(250);
-TimerClass SENSOR_TIMER(15000);
+TimerClass SENSOR_TIMER(10000);
 TimerClass ZWAVE_TIMER(30000);
+TimerClass TEMP_CHANGE_TIMER(30000);
+
+OLED DISPLAY;
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
 HysteresisClass HIST(&TheSettings);
 SensorClass SENSOR;
 BoilerClass BOILER;
+
 LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
 LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
 LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
@@ -80,6 +83,7 @@ ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 
 byte lastBoilerState = 1;
+int lastTemp = 0;
 ThermostatMode lastMode = Absent;
 unsigned long const zaveRefreshDelay = 30000;
 
@@ -90,32 +94,32 @@ unsigned long const zaveRefreshDelay = 30000;
 void DrawDisplay() {
 
     // clear screen
-    oled.clrscr();
+    DISPLAY.clrscr();
     delay(5);
 
     // sensor temperature
-    oled.setFont(zuno_font_numbers16);
-    oled.gotoXY(13, 0);
-    oled.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
+    DISPLAY.setFont(zuno_font_numbers16);
+    DISPLAY.gotoXY(13, 0);
+    DISPLAY.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
 
     // setpoint temperature
-    oled.gotoXY(13, 4);
-    oled.fixPrint((long)(SETTINGS.GetSetPoint(MODE.CurrentThermostatMode) * 10), 1);
+    DISPLAY.gotoXY(13, 4);
+    DISPLAY.fixPrint((long)(SETTINGS.GetSetPoint(MODE.CurrentThermostatMode) * 10), 1);
 
     // boiler state
     if (BOILER.GetBoilerState()) {
-        oled.gotoXY(80, 4);
-        oled.writeData(flame_data);
+        DISPLAY.gotoXY(80, 4);
+        DISPLAY.writeData(flame_data);
     }
 
     // thermostat mode
-    oled.gotoXY(80, 0);
+    DISPLAY.gotoXY(80, 0);
     switch (THERM.GetMode()) {
-        case Day: oled.writeData(sun_data); break;
-        case Night: oled.writeData(moon_data); break;
-        case Absent: oled.writeData(absent_data); break;
-        case Frost: oled.writeData(snow_data); break;
-        case Warm: oled.writeData(hot_data); break;
+        case Day: DISPLAY.writeData(sun_data); break;
+        case Night: DISPLAY.writeData(moon_data); break;
+        case Absent: DISPLAY.writeData(absent_data); break;
+        case Frost: DISPLAY.writeData(snow_data); break;
+        case Warm: DISPLAY.writeData(hot_data); break;
     }
 }
 
@@ -139,8 +143,11 @@ void setup() {
 
     LEDS.Init();
 
-    oled.begin();
-    oled.clrscr();
+    DISPLAY.begin();
+    DISPLAY.clrscr();
+
+    SENSOR.ReadSensor();
+    delay(100);
 }
 
 /**
@@ -150,7 +157,6 @@ void setup() {
 void loop() {
     // run the thermostat loop
     if (ZWAVE_TIMER.IsElapsed()) {
-        MY_SERIAL.println("Loop !");
         ZWAVE_TIMER.Init();
         LEDS.FlashAll(COLOR_WHITE);
         THERM.Loop();
@@ -191,11 +197,23 @@ void loop() {
         if (SENSOR.GetTemperature() != SENSOR.GetPreviousTemperature()) {
             drawDisplay = true;
         }
-        if (SENSOR.GetTemperature() > SENSOR.GetPreviousTemperature())
-            LEDS.SetAnimation(1);
-        else if (SENSOR.GetTemperature() < SENSOR.GetPreviousTemperature())
-            LEDS.SetAnimation(-1);
-        else LEDS.SetAnimation(0);
+    }
+
+    if (TEMP_CHANGE_TIMER.IsElapsed()) {
+        TEMP_CHANGE_TIMER.Init();
+        int delta = SENSOR.GetTemperature() - lastTemp;
+        if (delta != 0) {
+            int period = 100 / delta;
+            if (period < 100) period = 100;
+            if (period > 1000) period = 1000;
+            if (delta > 0)
+                LEDS.SetAnimation(1, period);
+            else if (delta < 0)
+                LEDS.SetAnimation(-1, period);
+        }
+        else
+            LEDS.SetAnimation(0, 250);
+        lastTemp = SENSOR.GetTemperature();
     }
 
     if (BOILER.GetBoilerState() != lastBoilerState) {

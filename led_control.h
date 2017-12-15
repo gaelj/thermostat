@@ -18,7 +18,7 @@ public:
     void DisplayColorAll(byte color0, byte color1, byte color2);
     void FlashAll(byte color);
     void SetBlinkingState(bool state);
-    void SetAnimation(int direction);
+    void SetAnimation(int direction, int period);
     void DrawAll(ThermostatMode mode);
 
 private:

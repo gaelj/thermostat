@@ -32,7 +32,7 @@ void SensorClass::ReadSensor() {
     //realHum = DhtSensor.readHumidity(force_read);
     do {
         realTemp = DhtSensor.readTemperature(force_read);
-    } while (realTemp == 0.1);
+    } while (realTemp == -0.1);
 }
 
 /**

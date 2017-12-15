@@ -41,11 +41,13 @@ void LedControlClass::SetBlinkingState(bool state)
 /**
  * @brief Controls LED animation
  * @param direction 0=off, -1=down, 1=up
+ * @param period millis between each frame of the animation
  */
-void LedControlClass::SetAnimation(int direction)
+void LedControlClass::SetAnimation(int direction, int period)
 {
-    if (animationDirection == direction) return;
+    if (animationDirection == direction && ANIMATION_TIMER->DurationInMillis == period) return;
     animationDirection = direction;
+    ANIMATION_TIMER->DurationInMillis = period;
     if (animationDirection != 0) {
         ANIMATION_TIMER->Init();
     }
