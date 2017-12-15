@@ -92,14 +92,14 @@ void LedControlClass::DrawAll(ThermostatMode mode)
             ANIMATION_TIMER->Init();
             animationIndex += animationDirection;
             if (animationIndex < 0)
-                animationIndex = LED_COUNT - 1;
-            if (animationIndex >= LED_COUNT)
+                animationIndex = LED_COUNT + 2 - 1;
+            if (animationIndex >= LED_COUNT + 2)
                 animationIndex = 0;
         }
         switch (animationIndex) {
-            case 0: ledColor0 = COLOR_BLACK; break;
-            case 1: ledColor1 = COLOR_BLACK; break;
-            case 2: ledColor2 = COLOR_BLACK; break;
+            case 1: ledColor0 = COLOR_BLACK; break;
+            case 2: ledColor1 = COLOR_BLACK; break;
+            case 3: ledColor2 = COLOR_BLACK; break;
         }
     }
 
