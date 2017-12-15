@@ -21,11 +21,13 @@ class SensorClass {
 public:
     SensorClass();
     float GetTemperature();
+    float GetPreviousTemperature();
     float GetHumidity();
     void ReadSensor();
 
 protected:
     float realTemp;
+    float previousTemp;
     float realHum;
 };
 

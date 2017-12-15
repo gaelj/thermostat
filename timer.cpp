@@ -12,7 +12,7 @@ void TimerClass::Init() {
 }
 
 bool TimerClass::IsElapsed() {
-    if (millis() > StartTime + DurationInMillis) {
+    if (!IsActive || millis() > StartTime + DurationInMillis) {
         IsActive = false;
         return true;
     }

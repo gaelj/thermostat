@@ -17,6 +17,9 @@ DHT DhtSensor(PIN_TEMP_SENSOR, DHT22);
  */
 SensorClass::SensorClass() {
     DhtSensor.begin();
+    previousTemp = 0;
+    realTemp = 0;
+    realHum = 0;
 }
 
 /**
@@ -24,9 +27,12 @@ SensorClass::SensorClass() {
  * 
  */
 void SensorClass::ReadSensor() {
-    byte forceRead = 1;
-    realTemp = DhtSensor.readTemperature(forceRead);
-    realHum = DhtSensor.readHumidity(forceRead);
+    const byte force_read = 1;
+    previousTemp = realTemp;
+    //realHum = DhtSensor.readHumidity(force_read);
+    do {
+        realTemp = DhtSensor.readTemperature(force_read);
+    } while (realTemp == 0.1);
 }
 
 /**
@@ -36,6 +42,11 @@ void SensorClass::ReadSensor() {
  */
 float SensorClass::GetTemperature() {
     return realTemp;
+}
+
+float SensorClass::GetPreviousTemperature()
+{
+    return previousTemp;
 }
 
 /**

@@ -8,7 +8,7 @@ public:
     TimerClass(unsigned long durationInMillis);
     void Init();
     bool IsElapsed();
-    bool IsActive;    
+    bool IsActive;
 
 private:
     unsigned long DurationInMillis;

@@ -31,6 +31,7 @@
 #include "thermostat_mode.h"
 #include "icons.h"
 #include "led.h"
+#include "led_control.h"
 #include "timer.h"
 #include "button.h"
 
@@ -53,14 +54,12 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 OLED oled;
-LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
-LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
-LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
-TimerClass LED_BLINK_TIMER(500);
+TimerClass LED_BLINK_TIMER(1000);
 TimerClass LED_FLASH_TIMER(100);
-TimerClass SENSOR_TIMER(5000);
+TimerClass LED_ANIMATION_TIMER(250);
+TimerClass SENSOR_TIMER(15000);
 TimerClass ZWAVE_TIMER(30000);
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
@@ -68,6 +67,10 @@ ThermostatModeClass MODE;
 HysteresisClass HIST(&TheSettings);
 SensorClass SENSOR;
 BoilerClass BOILER;
+LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
+LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
+LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
+LedControlClass LEDS(&LED0, &LED1, &LED2, &LED_FLASH_TIMER, &LED_BLINK_TIMER, &LED_ANIMATION_TIMER);
 /*
 PID pid(&SETTINGS);
 PID_ATune atune;
@@ -76,13 +79,9 @@ ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 
-float lastTemp = 200;
-float lastDrawnTemp = 200;
 byte lastBoilerState = 1;
 ThermostatMode lastMode = Absent;
 unsigned long const zaveRefreshDelay = 30000;
-bool ledBlinkState = false;
-byte ledColor = COLOR_BLACK;
 
 /**
 * @brief Draw the screen
@@ -138,17 +137,10 @@ void setup() {
     BUTTON1.Init();
     BUTTON2.Init();
 
-    LED0.Begin();
-    LED1.Begin();
-    LED2.Begin();
+    LEDS.Init();
 
     oled.begin();
     oled.clrscr();
-
-    LED_BLINK_TIMER.IsActive = false;
-    LED_FLASH_TIMER.IsActive = false;
-    ZWAVE_TIMER.IsActive = false;
-    SENSOR_TIMER.IsActive = false;
 }
 
 /**
@@ -157,12 +149,10 @@ void setup() {
 */
 void loop() {
     // run the thermostat loop
-    if (ZWAVE_TIMER.IsElapsed() || !ZWAVE_TIMER.IsActive) {
+    if (ZWAVE_TIMER.IsElapsed()) {
         MY_SERIAL.println("Loop !");
         ZWAVE_TIMER.Init();
-        LED0.DisplayColor(COLOR_CYAN);
-        LED1.DisplayColor(COLOR_CYAN);
-        LED2.DisplayColor(COLOR_CYAN);
+        LEDS.FlashAll(COLOR_CYAN);
         THERM.Loop();
         //zunoSendReport(1); // report setpoint
         zunoSendReport(2); // report temperature
@@ -178,44 +168,15 @@ void loop() {
         int newMode = ((int)THERM.GetMode() + change) % THERMOSTAT_MODE_COUNT;
         if (newMode < 0) newMode = THERMOSTAT_MODE_COUNT - 1;
         THERM.SetMode(ThermostatMode(newMode));
-        //LED_FLASH_TIMER.Init();
         zunoSendReport(1); // report setpoint
     }
     
     // handle is button pressed state
-    // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
-    //     LED_FLASH_TIMER.Init();
+    if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
+        LEDS.FlashAll(COLOR_WHITE);
 
     // boiler state changed
-    if (LED_BLINK_TIMER.IsActive != BOILER.GetBoilerState()) {
-        LED_BLINK_TIMER.IsActive = BOILER.GetBoilerState();
-        if (LED_BLINK_TIMER.IsActive)
-            LED_BLINK_TIMER.Init();
-    }
-
-    // toggle blink
-    if (LED_BLINK_TIMER.IsActive && LED_BLINK_TIMER.IsElapsed()) {
-        ledBlinkState = !ledBlinkState;
-        LED_BLINK_TIMER.Init();
-    }
-
-    // Set LED color
-    ledColor = COLOR_BLACK;
-    if (LED_FLASH_TIMER.IsActive && !LED_FLASH_TIMER.IsElapsed())
-        ledColor = COLOR_WHITE;
-    else if (!LED_BLINK_TIMER.IsActive || !ledBlinkState) {
-        switch (THERM.GetMode()) {
-            case Absent: ledColor = COLOR_YELLOW; break;
-            case Night:  ledColor = COLOR_MAGENTA; break;
-            case Day:    ledColor = COLOR_GREEN; break;
-            case Warm:   ledColor = COLOR_RED; break;
-            case Frost:  ledColor = COLOR_BLUE; break;
-        }
-    }
-
-    LED0.DisplayColor(ledColor);
-    LED1.DisplayColor(ledColor);
-    LED2.DisplayColor(ledColor);
+    LEDS.SetBlinkingState(BOILER.GetBoilerState());
 
     // Refresh display
     bool drawDisplay = false;
@@ -224,15 +185,17 @@ void loop() {
         drawDisplay = true;
     }
 
-    if (SENSOR_TIMER.IsElapsed() || !SENSOR_TIMER.IsActive) {
+    if (SENSOR_TIMER.IsElapsed()) {
         SENSOR_TIMER.Init();
         SENSOR.ReadSensor();
-        MY_SERIAL.println(SENSOR.GetTemperature());
-        MY_SERIAL.println(SENSOR.GetHumidity());
-        if (SENSOR.GetTemperature() != lastDrawnTemp) {
-            lastDrawnTemp = SENSOR.GetTemperature();
+        if (SENSOR.GetTemperature() != SENSOR.GetPreviousTemperature()) {
             drawDisplay = true;
         }
+        if (SENSOR.GetTemperature() > SENSOR.GetPreviousTemperature())
+            LEDS.SetAnimation(1);
+        else if (SENSOR.GetTemperature() < SENSOR.GetPreviousTemperature())
+            LEDS.SetAnimation(-1);
+        else LEDS.SetAnimation(0);
     }
 
     if (BOILER.GetBoilerState() != lastBoilerState) {
@@ -242,6 +205,8 @@ void loop() {
 
     if (drawDisplay)
         DrawDisplay();
+
+    LEDS.DrawAll(THERM.GetMode());
 
     delay(10);
     /*

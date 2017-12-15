@@ -46,7 +46,7 @@ ThermostatMode ThermostatClass::GetMode() {
  * @return int      0 if OK, -1 in case of error
  */
 int ThermostatClass::Loop() {
-    SENSOR->ReadSensor();
+    //SENSOR->ReadSensor();
 
     float temp = SENSOR->GetTemperature();
     float setPoint = SETTINGS->GetSetPoint(MODE->CurrentThermostatMode);
