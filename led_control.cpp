@@ -1,9 +1,15 @@
 #include "led_control.h"
 
-LedControlClass::LedControlClass(LedClass* led0, LedClass* led1, LedClass* led2,
-    TimerClass* flashTimer, TimerClass* blinkTimer, TimerClass* animationTimer) :
-    LED0(led0), LED1(led1), LED2(led2),
-    FLASH_TIMER(flashTimer), BLINK_TIMER(blinkTimer), ANIMATION_TIMER(animationTimer)
+LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
+LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
+LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
+TimerClass BLINK_TIMER(1500);
+TimerClass FLASH_TIMER(100);
+TimerClass ANIMATION_TIMER(250);
+TimerClass TEMP_CHANGE_TIMER(30000);
+
+LedControlClass::LedControlClass(SensorClass* sensor, BoilerClass* boiler, ThermostatClass* thermostat):
+    SENSOR(sensor), BOILER(boiler), THERM(thermostat)
 {
     ledBlinkState = false;
     ledColor = COLOR_BLACK;
@@ -14,35 +20,38 @@ LedControlClass::LedControlClass(LedClass* led0, LedClass* led1, LedClass* led2,
     flashCounter = 0;
     animationDirection = 0;
     animationIndex = 0;
+    lastTemp = 0;
 }
 
 void LedControlClass::Init()
 {
-    LED0->Begin();
-    LED1->Begin();
-    LED2->Begin();
+    LED0.Init();
+    LED1.Init();
+    LED2.Init();
+    lastTemp = SENSOR->GetTemperature();
 }
 
 void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
 {
-    LED0->DisplayColor(color0);
-    LED1->DisplayColor(color1);
-    LED2->DisplayColor(color2);
+    LED0.DisplayColor(color0);
+    LED1.DisplayColor(color1);
+    LED2.DisplayColor(color2);
 }
 
 void LedControlClass::FlashAll(byte color)
 {
-    FLASH_TIMER->Init();
+    FLASH_TIMER.Start();
     flashCounter = FLASHES;
     flashColor = color;
 }
 
-void LedControlClass::SetBlinkingState(bool state)
+void LedControlClass::SetBlinkingState()
 {
-    if (BLINK_TIMER->IsActive != state) {
-        BLINK_TIMER->IsActive = state;
-        if (BLINK_TIMER->IsActive)
-            BLINK_TIMER->Init();
+    bool state = BOILER->GetBoilerState();
+    if (BLINK_TIMER.IsActive != state) {
+        BLINK_TIMER.IsActive = state;
+        if (BLINK_TIMER.IsActive)
+            BLINK_TIMER.Start();
     }
 }
 
@@ -52,24 +61,49 @@ void LedControlClass::SetBlinkingState(bool state)
  * @param direction 0=off, -1=down, 1=up
  * @param period millis between each frame of the animation
  */
-void LedControlClass::SetAnimation(int direction, int period)
+void LedControlClass::StartAnimation(int direction, int period)
 {
-    if (animationDirection == direction && ANIMATION_TIMER->DurationInMillis == period) return;
+    if (animationDirection == direction && ANIMATION_TIMER.DurationInMillis == period) return;
     animationDirection = direction;
-    ANIMATION_TIMER->DurationInMillis = period;
+    ANIMATION_TIMER.DurationInMillis = period;
     if (animationDirection != 0) {
-        ANIMATION_TIMER->Init();
+        ANIMATION_TIMER.Start();
     }
 }
 
-void LedControlClass::DrawAll(ThermostatMode mode)
+/**
+ * @brief Set the LED animation according to temperature change
+ * 
+ */
+void LedControlClass::SetAnimationState()
 {
+    if (TEMP_CHANGE_TIMER.IsElapsed()) {
+        TEMP_CHANGE_TIMER.Start();
+        float delta = SENSOR->GetTemperature() - lastTemp;
+        if (delta != 0) {
+            int period = 100 / abs(delta);
+            if (period < 100) period = 100;
+            if (period > 1000) period = 1000;
+            if (delta > 0)
+                StartAnimation(1, period);
+            else if (delta < 0)
+                StartAnimation(-1, period);
+        }
+        else
+            StartAnimation(0, 250);
+        lastTemp = SENSOR->GetTemperature();
+    }
+}
+
+void LedControlClass::DrawAll()
+{
+    ThermostatMode mode = THERM->GetMode();
     // Toggle blink
-    if (BLINK_TIMER->IsActive && BLINK_TIMER->IsElapsed()) {
+    if (BLINK_TIMER.IsActive && BLINK_TIMER.IsElapsed()) {
         ledBlinkState = !ledBlinkState;
         if (ledBlinkState)
             FlashAll(COLOR_RED);
-        BLINK_TIMER->Init();
+        BLINK_TIMER.Start();
     }
 
     // Set base color according to mode
@@ -82,15 +116,15 @@ void LedControlClass::DrawAll(ThermostatMode mode)
     }
 
     // Flash LED
-    if (FLASH_TIMER->IsActive) {
-        if (!FLASH_TIMER->IsElapsed()) {
+    if (FLASH_TIMER.IsActive) {
+        if (!FLASH_TIMER.IsElapsed()) {
             if (flashCounter % 2 == 1)
                 ledColor = flashColor;
         }
         else {
             flashCounter--;
             if (flashCounter > 0)
-                FLASH_TIMER->Init();
+                FLASH_TIMER.Start();
         }
     }
     // Draw animations
@@ -98,8 +132,8 @@ void LedControlClass::DrawAll(ThermostatMode mode)
     ledColor1 = ledColor;
     ledColor2 = ledColor;
     if (animationDirection != 0) {
-        if (ANIMATION_TIMER->IsElapsed()) {
-            ANIMATION_TIMER->Init();
+        if (ANIMATION_TIMER.IsElapsed()) {
+            ANIMATION_TIMER.Start();
             animationIndex += animationDirection;
             if (animationIndex < 0)
                 animationIndex = LED_COUNT;

@@ -3,11 +3,11 @@
 TimerClass::TimerClass(unsigned long durationInMillis)
 {
     DurationInMillis = durationInMillis;
-    Init();
+    Start();
     IsActive = false;
 }
 
-void TimerClass::Init()
+void TimerClass::Start()
 {
     // start from the last timer end timestamp if possible
     if ((millis() - StartTime) > DurationInMillis && (millis() - StartTime) < (DurationInMillis * 2))

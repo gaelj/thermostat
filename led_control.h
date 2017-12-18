@@ -6,28 +6,28 @@
 #include "led.h"
 #include "timer.h"
 #include "thermostat_mode.h"
+#include "sensor.h"
+#include "boiler.h"
+#include "thermo_control.h"
 
 #define LED_COUNT 3
 #define FLASHES 3
 
 class LedControlClass {
 public:
-    LedControlClass(LedClass* led0, LedClass* led1, LedClass* led2,
-        TimerClass* flashTimer, TimerClass* blinkTimer, TimerClass* animationTimer);
+    LedControlClass(SensorClass* sensor, BoilerClass* boiler, ThermostatClass* thermostat);
     void Init();
     void DisplayColorAll(byte color0, byte color1, byte color2);
     void FlashAll(byte color);
-    void SetBlinkingState(bool state);
-    void SetAnimation(int direction, int period);
-    void DrawAll(ThermostatMode mode);
+    void SetBlinkingState();
+    void SetAnimationState();
+    void StartAnimation(int direction, int period);
+    void DrawAll();
 
 private:
-    LedClass* LED0;
-    LedClass* LED1;
-    LedClass* LED2;
-    TimerClass* FLASH_TIMER;
-    TimerClass* BLINK_TIMER;
-    TimerClass* ANIMATION_TIMER;
+    SensorClass* SENSOR;
+    BoilerClass* BOILER;
+    ThermostatClass* THERM;
     bool ledBlinkState;
     byte ledColor;
     byte ledColor0;
@@ -37,6 +37,7 @@ private:
     byte flashCounter;
     int animationDirection;
     int animationIndex;
+    int lastTemp;
 };
 
 #endif // LED_CONTROL_H

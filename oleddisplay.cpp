@@ -2,17 +2,23 @@
 #include "icons.h"
 
 OLED SCREEN;
+TimerClass SENSOR_TIMER(10000);
 
-DisplayClass::DisplayClass(SettingsClass* settings, SensorClass* sensor,
+OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
         BoilerClass* boiler, ThermostatClass* thermostat, ThermostatModeClass* mode)
         : SETTINGS(settings), SENSOR(sensor),
-            BOILER(boiler), THERM(thermostat), MODE(mode) { }
+            BOILER(boiler), THERM(thermostat), MODE(mode)
+{
+    lastBoilerState = 1;
+    lastMode = Absent;
+    lastTemp = SENSOR->GetTemperature();
+}
 
 /**
 * @brief Initalize the screen
 *
 */
-void DisplayClass::Init()
+void OledDisplayClass::Init()
 {
     SCREEN.begin();
     SCREEN.clrscr();
@@ -22,7 +28,7 @@ void DisplayClass::Init()
 * @brief Draw the screen
 *
 */
-void DisplayClass::DrawDisplay()
+void OledDisplayClass::DrawDisplay()
 {
     // clear screen
     SCREEN.clrscr();
@@ -68,3 +74,35 @@ void DisplayClass::DrawDisplay()
             break;
     }
 }
+
+/**
+* @brief Should the display be redrawn, due to source data update
+* 
+*/
+bool OledDisplayClass::DisplayRedrawNeeded()
+{
+    // Refresh display if thermostat mode has changed
+    bool drawDisplay = false;
+    if (THERM->GetMode() != lastMode) {
+        lastMode = THERM->GetMode();
+        drawDisplay = true;
+    }
+
+    // Refresh display if temperature has changed
+    if (SENSOR_TIMER.IsElapsed()) {
+        SENSOR_TIMER.Start();
+        SENSOR->ReadSensor();
+        if (SENSOR->GetTemperature() != lastTemp) {
+            lastTemp = SENSOR->GetTemperature();
+            drawDisplay = true;
+        }
+    }
+
+    // Refresh display if boiler state has changed
+    if (BOILER->GetBoilerState() != lastBoilerState) {
+        lastBoilerState = BOILER->GetBoilerState();
+        drawDisplay = true;
+    }
+    return drawDisplay;
+}
+

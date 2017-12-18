@@ -7,18 +7,20 @@
 #include <ZUNO_OLED_FONT_NUMB16.h>
 
 #include "settings.h"
+#include "timer.h"
 #include "sensor.h"
 #include "boiler.h"
 #include "thermo_control.h"
 #include "thermostat_mode.h"
 
-class DisplayClass
+class OledDisplayClass
 {
 public:
-    DisplayClass(SettingsClass* settings, SensorClass* sensor,
+    OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
         BoilerClass* boiler, ThermostatClass* thermostat, ThermostatModeClass* mode);
     void Init();
     void DrawDisplay();
+    bool DisplayRedrawNeeded();
 
 private:
     SettingsClass* SETTINGS;
@@ -26,6 +28,9 @@ private:
     BoilerClass* BOILER;
     ThermostatClass* THERM;
     ThermostatModeClass* MODE;
+    byte lastBoilerState;
+    float lastTemp;
+    ThermostatMode lastMode;
 };
 
 #endif // OLEDDISPLAY_H

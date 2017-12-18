@@ -61,12 +61,7 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
 
-TimerClass LED_BLINK_TIMER(1500);
-TimerClass LED_FLASH_TIMER(100);
-TimerClass LED_ANIMATION_TIMER(250);
-TimerClass SENSOR_TIMER(10000);
 TimerClass ZWAVE_TIMER(30000);
-TimerClass TEMP_CHANGE_TIMER(30000);
 
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
@@ -75,10 +70,6 @@ HysteresisClass HIST(&TheSettings);
 SensorClass SENSOR;
 BoilerClass BOILER;
 
-LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
-LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
-LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
-LedControlClass LEDS(&LED0, &LED1, &LED2, &LED_FLASH_TIMER, &LED_BLINK_TIMER, &LED_ANIMATION_TIMER);
 /*
 PID pid(&SETTINGS);
 PID_ATune atune;
@@ -86,11 +77,9 @@ AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
-DisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &MODE);
+OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &MODE);
+LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
 
-byte lastBoilerState = 1;
-int lastTemp = 0;
-ThermostatMode lastMode = Absent;
 
 /**
 * @brief Main setup function
@@ -108,12 +97,12 @@ void setup()
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
 
+    SENSOR.ReadSensor();
+
     BUTTON1.Init();
     BUTTON2.Init();
     LEDS.Init();
     DISPLAY.Init();
-    SENSOR.ReadSensor();
-    lastTemp = SENSOR.GetTemperature();
 }
 
 /**
@@ -122,9 +111,10 @@ void setup()
 */
 void loop()
 {
+    unsigned long loopStart = millis();
     // Run the thermostat loop
     if (ZWAVE_TIMER.IsElapsed()) {
-        ZWAVE_TIMER.Init();
+        ZWAVE_TIMER.Start();
         THERM.Loop();
         //zunoSendReport(ZUNO_REPORT_SETPOINT);
         zunoSendReport(ZUNO_REPORT_TEMP);
@@ -143,30 +133,8 @@ void loop()
         zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
 
-    // Refresh display if thermostat mode has changed
-    bool drawDisplay = false;
-    if (THERM.GetMode() != lastMode) {
-        lastMode = THERM.GetMode();
-        drawDisplay = true;
-    }
-
-    // Refresh display if temperature has changed
-    if (SENSOR_TIMER.IsElapsed()) {
-        SENSOR_TIMER.Init();
-        SENSOR.ReadSensor();
-        if (SENSOR.GetTemperature() != SENSOR.GetPreviousTemperature()) {
-            drawDisplay = true;
-        }
-    }
-
-    // Refresh display if boiler state has changed
-    if (BOILER.GetBoilerState() != lastBoilerState) {
-        lastBoilerState = BOILER.GetBoilerState();
-        drawDisplay = true;
-    }
-
     // Refresh display if required
-    if (drawDisplay)
+    if (DISPLAY.DisplayRedrawNeeded())
         DISPLAY.DrawDisplay();
 
     // Flash LEDs on button pressed
@@ -174,30 +142,17 @@ void loop()
     //     LEDS.FlashAll(COLOR_WHITE);
 
     // Set LED blinking if boiler is on
-    LEDS.SetBlinkingState(BOILER.GetBoilerState());
+    LEDS.SetBlinkingState();
 
     // Set LED animation if temperature has changed
-    if (TEMP_CHANGE_TIMER.IsElapsed()) {
-        TEMP_CHANGE_TIMER.Init();
-        float delta = SENSOR.GetTemperature() - lastTemp;
-        if (delta != 0) {
-            int period = 100 / abs(delta);
-            if (period < 100) period = 100;
-            if (period > 1000) period = 1000;
-            if (delta > 0)
-                LEDS.SetAnimation(1, period);
-            else if (delta < 0)
-                LEDS.SetAnimation(-1, period);
-        }
-        else
-            LEDS.SetAnimation(0, 250);
-        lastTemp = SENSOR.GetTemperature();
-    }
+    LEDS.SetAnimationState();
 
     // Refresh LED states
-    LEDS.DrawAll(THERM.GetMode());
+    LEDS.DrawAll();
 
-    delay(1);
+    static const int loopDelay = 10;
+    if (loopDelay > (millis() - loopStart))
+        delay(loopDelay - (millis() - loopStart));
 }
 
 

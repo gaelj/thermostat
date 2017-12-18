@@ -6,7 +6,7 @@ LedClass::LedClass(byte pinR, byte pinG, byte pinB) {
     PinB = pinB;
 }
 
-void LedClass::Begin() {
+void LedClass::Init() {
     pinMode(PinR, OUTPUT);
     pinMode(PinG, OUTPUT);
     pinMode(PinB, OUTPUT);
