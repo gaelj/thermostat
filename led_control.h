@@ -17,11 +17,9 @@ class LedControlClass {
 public:
     LedControlClass(SensorClass* sensor, BoilerClass* boiler, ThermostatClass* thermostat);
     void Init();
-    void DisplayColorAll(byte color0, byte color1, byte color2);
-    void FlashAll(byte color);
+    void SetFlash(byte color);
     void SetBlinkingState();
     void SetAnimationState();
-    void StartAnimation(int direction, int period);
     void DrawAll();
 
 private:
@@ -37,7 +35,10 @@ private:
     byte flashCounter;
     int animationDirection;
     int animationIndex;
-    int lastTemp;
+    float lastTemp;
+    void DisplayColorAll(byte color0, byte color1, byte color2);
+    void StartAnimation(int direction, int period);
+
 };
 
 #endif // LED_CONTROL_H

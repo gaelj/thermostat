@@ -38,7 +38,7 @@ void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
     LED2.DisplayColor(color2);
 }
 
-void LedControlClass::FlashAll(byte color)
+void LedControlClass::SetFlash(byte color)
 {
     FLASH_TIMER.Start();
     flashCounter = FLASHES;
@@ -97,17 +97,16 @@ void LedControlClass::SetAnimationState()
 
 void LedControlClass::DrawAll()
 {
-    ThermostatMode mode = THERM->GetMode();
     // Toggle blink
     if (BLINK_TIMER.IsActive && BLINK_TIMER.IsElapsed()) {
         ledBlinkState = !ledBlinkState;
         if (ledBlinkState)
-            FlashAll(COLOR_RED);
+            SetFlash(COLOR_RED);
         BLINK_TIMER.Start();
     }
 
     // Set base color according to mode
-    switch (mode) {
+    switch (THERM->GetMode()) {
         case Frost:  ledColor = COLOR_BLUE; break;
         case Absent: ledColor = COLOR_CYAN; break;
         case Night:  ledColor = COLOR_MAGENTA; break;
@@ -127,6 +126,7 @@ void LedControlClass::DrawAll()
                 FLASH_TIMER.Start();
         }
     }
+
     // Draw animations
     ledColor0 = ledColor;
     ledColor1 = ledColor;

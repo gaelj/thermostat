@@ -11,7 +11,6 @@ OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
 {
     lastBoilerState = 1;
     lastMode = Absent;
-    lastTemp = SENSOR->GetTemperature();
 }
 
 /**
@@ -20,6 +19,7 @@ OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
 */
 void OledDisplayClass::Init()
 {
+    lastTemp = SENSOR->GetTemperature();
     SCREEN.begin();
     SCREEN.clrscr();
 }
@@ -76,7 +76,7 @@ void OledDisplayClass::DrawDisplay()
 }
 
 /**
-* @brief Should the display be redrawn, due to source data update
+* @brief Should the display be redrawn, due to source data update. Reads the temperature sensor
 * 
 */
 bool OledDisplayClass::DisplayRedrawNeeded()
