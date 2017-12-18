@@ -8,9 +8,6 @@
 #include "hysteresis.h"
 #include "thermostat_mode.h"
 
-#define SWITCH_ON 0xff
-#define SWITCH_OFF 0
-
 class ThermostatClass {
 public:
     ThermostatClass(SettingsClass* settings, SensorClass* sensor,

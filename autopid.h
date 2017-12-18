@@ -6,7 +6,8 @@
 #include <PID_AutoTune_v0.h>
 #include "settings.h"
 
-class AutoPidClass {
+class AutoPidClass
+{
 public:
     AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings, ThermostatModeClass* mode);
     void ApplySettings();

@@ -4,7 +4,8 @@
 #include <Arduino.h>
 #include "settings.h"
 
-class HysteresisClass {
+class HysteresisClass
+{
 public:
     HysteresisClass(settings_s*);
     float Loop(const float, const float);

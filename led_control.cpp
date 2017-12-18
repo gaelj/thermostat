@@ -3,7 +3,18 @@
 LedControlClass::LedControlClass(LedClass* led0, LedClass* led1, LedClass* led2,
     TimerClass* flashTimer, TimerClass* blinkTimer, TimerClass* animationTimer) :
     LED0(led0), LED1(led1), LED2(led2),
-    FLASH_TIMER(flashTimer), BLINK_TIMER(blinkTimer), ANIMATION_TIMER(animationTimer) { }
+    FLASH_TIMER(flashTimer), BLINK_TIMER(blinkTimer), ANIMATION_TIMER(animationTimer)
+{
+    ledBlinkState = false;
+    ledColor = COLOR_BLACK;
+    ledColor0 = COLOR_BLACK;
+    ledColor1 = COLOR_BLACK;
+    ledColor2 = COLOR_BLACK;
+    flashColor = COLOR_BLACK;
+    flashCounter = 0;
+    animationDirection = 0;
+    animationIndex = 0;
+}
 
 void LedControlClass::Init()
 {

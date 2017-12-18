@@ -28,15 +28,15 @@ private:
     TimerClass* FLASH_TIMER;
     TimerClass* BLINK_TIMER;
     TimerClass* ANIMATION_TIMER;
-    bool ledBlinkState = false;
-    byte ledColor = COLOR_BLACK;
-    byte ledColor0 = COLOR_BLACK;
-    byte ledColor1 = COLOR_BLACK;
-    byte ledColor2 = COLOR_BLACK;
-    byte flashColor = COLOR_BLACK;
-    byte flashCounter = 0;
-    int animationDirection = 0;
-    int animationIndex = 0;
+    bool ledBlinkState;
+    byte ledColor;
+    byte ledColor0;
+    byte ledColor1;
+    byte ledColor2;
+    byte flashColor;
+    byte flashCounter;
+    int animationDirection;
+    int animationIndex;
 };
 
 #endif // LED_CONTROL_H

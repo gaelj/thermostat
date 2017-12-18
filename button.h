@@ -7,7 +7,8 @@
 * @brief Access to a button
 *
 */
-class ButtonClass {
+class ButtonClass
+{
 public:
     ButtonClass(byte pin);
     void Init();

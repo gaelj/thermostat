@@ -7,12 +7,13 @@
 #include <ZUNO_Definitions.h>
 #include "settings.h"
 
-#define SWITCH_ON 0xff
-#define SWITCH_OFF 0
+#define SWITCH_ON           0xFF
+#define SWITCH_OFF          0x00
 
-#define CONTROL_GROUP_1      1  // Boiler group
+#define CONTROL_GROUP_1     1  // Boiler group
 
-class BoilerClass {
+class BoilerClass
+{
 public:
     BoilerClass();
     void SetBoilerState(bool value);
