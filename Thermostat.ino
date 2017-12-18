@@ -3,6 +3,7 @@
 *
 */
 
+#include "button_control.h"
 #include "pinout.h"
 #include "sensor.h"
 
@@ -34,6 +35,7 @@
 #include "led_control.h"
 #include "timer.h"
 #include "button.h"
+#include "button_control.h"
 #include "oleddisplay.h"
 
 #define MY_SERIAL Serial
@@ -58,18 +60,13 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
-ButtonClass BUTTON1(PIN_BUTTON1);
-ButtonClass BUTTON2(PIN_BUTTON2);
-
 TimerClass ZWAVE_TIMER(30000);
-
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
 HysteresisClass HIST(&TheSettings);
 SensorClass SENSOR;
 BoilerClass BOILER;
-
 /*
 PID pid(&SETTINGS);
 PID_ATune atune;
@@ -79,6 +76,7 @@ ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &MODE);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
+ButtonControlClass BUTTONS(&THERM);
 
 
 /**
@@ -99,8 +97,7 @@ void setup()
 
     SENSOR.ReadSensor();
 
-    BUTTON1.Init();
-    BUTTON2.Init();
+    BUTTONS.Init();
     LEDS.Init();
     DISPLAY.Init();
 }
@@ -112,34 +109,13 @@ void setup()
 void loop()
 {
     unsigned long loopStart = millis();
-    // Run the thermostat loop
-    if (ZWAVE_TIMER.IsElapsed()) {
-        ZWAVE_TIMER.Start();
-        THERM.Loop();
-        //zunoSendReport(ZUNO_REPORT_SETPOINT);
-        zunoSendReport(ZUNO_REPORT_TEMP);
-    }
 
     // Handle button presses
-    int change = 0;
-    if (BUTTON1.ButtonHasBeenPressed())
-        change = 1;
-    if (BUTTON2.ButtonHasBeenPressed())
-        change = -1;
-    if (change != 0) {
-        int newMode = ((int)THERM.GetMode() + change) % THERMOSTAT_MODE_COUNT;
-        if (newMode < 0) newMode = THERMOSTAT_MODE_COUNT - 1;
-        THERM.SetMode(ThermostatMode(newMode));
-        zunoSendReport(ZUNO_REPORT_SETPOINT);
-    }
+    BUTTONS.HandlePressedButtons();
 
     // Refresh display if required
     if (DISPLAY.DisplayRedrawNeeded())
         DISPLAY.DrawDisplay();
-
-    // Flash LEDs on button pressed
-    // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
-    //     LEDS.FlashAll(COLOR_WHITE);
 
     // Set LED blinking if boiler is on
     LEDS.SetBlinkingState();
@@ -150,6 +126,15 @@ void loop()
     // Refresh LED states
     LEDS.DrawAll();
 
+    // Run the thermostat loop
+    if (ZWAVE_TIMER.IsElapsed()) {
+        ZWAVE_TIMER.Start();
+        THERM.Loop();
+        zunoSendReport(ZUNO_REPORT_SETPOINT);
+        zunoSendReport(ZUNO_REPORT_TEMP);
+    }
+
+    // Wait if needed
     const unsigned long loopDelay = 10;
     if (loopDelay > (millis() - loopStart))
         delay(loopDelay - (millis() - loopStart));
