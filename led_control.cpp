@@ -31,6 +31,27 @@ void LedControlClass::Init()
     lastTemp = SENSOR->GetTemperature();
 }
 
+void LedControlClass::FlashEnqueue(byte color)
+{
+    if (flashQueueSize < FLASH_QUEUE_LEN) {
+        flashQueue[flashQueueSize] = color;
+        flashQueueSize++;
+    }
+}
+
+byte LedControlClass::FlashDequeue()
+{
+    byte color = flashQueue[0];
+    flashQueueSize--;
+    for (byte i = 0; i < FLASH_QUEUE_LEN; i++) {
+        if (i < flashQueueSize)
+            flashQueue[i] = flashQueue[i + 1];
+        else
+            flashQueue[i] = COLOR_BLACK;
+    }
+    return color;
+}
+
 void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
 {
     LED0.DisplayColor(color0);
@@ -39,6 +60,12 @@ void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
 }
 
 void LedControlClass::SetFlash(byte color)
+{
+    if (color != flashColor && color != flashQueue[0])
+        FlashEnqueue(color);
+}
+
+void LedControlClass::DoFlash(byte color)
 {
     FLASH_TIMER.Start();
     flashCounter = FLASHES;
@@ -97,11 +124,11 @@ void LedControlClass::SetAnimationState()
 
 void LedControlClass::DrawAll()
 {
-    // Toggle blink
+    // Toggle boiler blink
     if (BLINK_TIMER.IsActive && BLINK_TIMER.IsElapsed()) {
         ledBlinkState = !ledBlinkState;
         if (ledBlinkState)
-            SetFlash(COLOR_RED);
+            SetFlash(BOILER_BLINK_COLOR);
         BLINK_TIMER.Start();
     }
 
@@ -115,10 +142,15 @@ void LedControlClass::DrawAll()
     }
 
     // Flash LED
+    if (!FLASH_TIMER.IsActive && flashQueueSize > 0) {
+        DoFlash(FlashDequeue());
+    }
     if (FLASH_TIMER.IsActive) {
         if (!FLASH_TIMER.IsElapsed()) {
-            if (flashCounter % 2 == 1)
+            if (flashCounter % 2 == 1 && flashCounter >= FLASHES - 3)
                 ledColor = flashColor;
+            else
+                ledColor = COLOR_BLACK;
         }
         else {
             flashCounter--;

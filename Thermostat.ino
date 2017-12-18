@@ -163,9 +163,9 @@ void loop()
 void ZSetSetpoint(byte value)
 {
     if (THERM.GetMode() != MODE.Decode(value)) {
-        LEDS.SetFlash(COLOR_BLUE);
+        LEDS.SetFlash(SET_SETPOINT_COLOR);
         THERM.SetMode(MODE.Decode(value));
-        zunoSendReport(ZUNO_REPORT_SETPOINT);
+        //zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
 }
 
@@ -175,7 +175,7 @@ void ZSetSetpoint(byte value)
 */
 byte ZGetSetpoint()
 {
-    LEDS.SetFlash(COLOR_YELLOW);
+    LEDS.SetFlash(GET_SETPOINT_COLOR);
     return MODE.Encode(THERM.GetMode());
 }
 
@@ -185,7 +185,7 @@ byte ZGetSetpoint()
 */
 word ZGetRealTemperature()
 {
-    LEDS.SetFlash(COLOR_GREEN);
+    LEDS.SetFlash(GET_TEMPRATURE_COLOR);
     return SENSOR.Encode(SENSOR.GetTemperature());
 }
 
@@ -209,11 +209,11 @@ byte RealHumidityGetter()
 */
 void zunoCallback(void)
 {
-    LEDS.SetFlash(COLOR_WHITE);
+    LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     switch (callback_data.type) {
-        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
-        case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
-        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
+        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = MODE.Encode(THERM.GetMode()); break;
+        case ZUNO_CHANNEL1_SETTER: THERM.SetMode(MODE.Decode(callback_data.param.bParam)); break;
+        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = SENSOR.Encode(SENSOR.GetTemperature()); break;
         default: break;
     }
 }
