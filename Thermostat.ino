@@ -7,6 +7,7 @@
 #include "sensor.h"
 
 #include <EEPROM.h>
+#include <Wire.h>
 #include <ZUNO_legacy_channels.h>
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
@@ -29,11 +30,11 @@
 #include "hysteresis.h"
 #include "thermo_control.h"
 #include "thermostat_mode.h"
-#include "icons.h"
 #include "led.h"
 #include "led_control.h"
 #include "timer.h"
 #include "button.h"
+#include "oleddisplay.h"
 
 #define MY_SERIAL Serial
 
@@ -56,7 +57,7 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 // (association to the relay must be setup in the Zwave network master)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
-// Objects must be created in the sketch
+// Create objects
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
 
@@ -67,7 +68,6 @@ TimerClass SENSOR_TIMER(10000);
 TimerClass ZWAVE_TIMER(30000);
 TimerClass TEMP_CHANGE_TIMER(30000);
 
-OLED SCREEN;
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
@@ -86,61 +86,11 @@ AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
+DisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &MODE);
 
 byte lastBoilerState = 1;
 int lastTemp = 0;
 ThermostatMode lastMode = Absent;
-
-/**
-* @brief Draw the screen
-*
-*/
-void DrawDisplay()
-{
-    // clear screen
-    SCREEN.clrscr();
-    delay(5);
-
-    // sensor temperature
-    SCREEN.setFont(zuno_font_numbers16);
-    SCREEN.gotoXY(13, 0);
-    SCREEN.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
-
-    // setpoint temperature
-    SCREEN.gotoXY(13, 4);
-    SCREEN.fixPrint((long)(SETTINGS.GetSetPoint(MODE.CurrentThermostatMode) * 10), 1);
-
-    // boiler state
-    if (BOILER.GetBoilerState()) {
-        SCREEN.gotoXY(80, 4);
-        SCREEN.writeData(flame_data);
-    }
-
-    // thermostat mode
-    SCREEN.gotoXY(80, 0);
-    switch (THERM.GetMode()) {
-        case Frost:
-            SCREEN.writeData(snow_data);
-            SCREEN.setBrightness(0x00);
-            break;
-        case Absent:
-            SCREEN.writeData(absent_data);
-            SCREEN.setBrightness(0x00);
-            break;
-        case Night:
-            SCREEN.writeData(moon_data);
-            SCREEN.setBrightness(0x00);
-            break;
-        case Day:
-            SCREEN.writeData(sun_data);
-            SCREEN.setBrightness(0xFF);
-            break;
-        case Warm:
-            SCREEN.writeData(hot_data);
-            SCREEN.setBrightness(0xFF);
-            break;
-    }
-}
 
 /**
 * @brief Main setup function
@@ -160,12 +110,8 @@ void setup()
 
     BUTTON1.Init();
     BUTTON2.Init();
-
     LEDS.Init();
-
-    SCREEN.begin();
-    SCREEN.clrscr();
-
+    DISPLAY.Init();
     SENSOR.ReadSensor();
     lastTemp = SENSOR.GetTemperature();
 }
@@ -221,7 +167,7 @@ void loop()
 
     // Refresh display if required
     if (drawDisplay)
-        DrawDisplay();
+        DISPLAY.DrawDisplay();
 
     // Flash LEDs on button pressed
     // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
@@ -264,7 +210,7 @@ void ZSetSetpoint(byte value)
     if (THERM.GetMode() != MODE.Decode(value)) {
         LEDS.FlashAll(COLOR_BLUE);
         THERM.SetMode(MODE.Decode(value));
-        zunoSendReport(1); // report setpoint
+        zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
 }
 
