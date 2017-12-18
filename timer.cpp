@@ -1,24 +1,34 @@
 #include "timer.h"
 
-TimerClass::TimerClass(unsigned long durationInMillis) {
+TimerClass::TimerClass(unsigned long durationInMillis)
+{
     DurationInMillis = durationInMillis;
     Init();
     IsActive = false;
 }
 
-void TimerClass::Init() {
+void TimerClass::Init()
+{
     // start from the last timer end timestamp if possible
-    if (millis() > StartTime + DurationInMillis && millis() < StartTime + (DurationInMillis * 2))
+    if ((millis() - StartTime) > DurationInMillis && (millis() - StartTime) < (DurationInMillis * 2))
         StartTime += DurationInMillis;
     else
         StartTime = millis();
     IsActive = true;
 }
 
-bool TimerClass::IsElapsed() {
-    if (!IsActive || millis() > StartTime + DurationInMillis) {
+bool TimerClass::IsElapsed()
+{
+    if (!IsActive || (millis() - StartTime) >= DurationInMillis) {
         IsActive = false;
         return true;
     }
     return false;
+}
+
+float TimerClass::GetProgressPercentage()
+{
+    float n = (float)((millis() - StartTime) / 1000);
+    float d = (float)(DurationInMillis / 1000);
+    return n / d;
 }

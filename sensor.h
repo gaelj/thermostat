@@ -24,6 +24,7 @@ public:
     float GetPreviousTemperature();
     float GetHumidity();
     void ReadSensor();
+    word Encode(const float temp);
 
 protected:
     float realTemp;

@@ -15,7 +15,8 @@ DHT DhtSensor(PIN_TEMP_SENSOR, DHT22);
  * @brief Constructor. Does required initialisations and turns the boiler off
  * 
  */
-SensorClass::SensorClass() {
+SensorClass::SensorClass()
+{
     DhtSensor.begin();
     previousTemp = 0;
     realTemp = 0;
@@ -26,7 +27,8 @@ SensorClass::SensorClass() {
  * @brief Read the sensor and store the result to buffer
  * 
  */
-void SensorClass::ReadSensor() {
+void SensorClass::ReadSensor()
+{
     const byte force_read = 1;
     previousTemp = realTemp;
     //realHum = DhtSensor.readHumidity(force_read);
@@ -40,7 +42,8 @@ void SensorClass::ReadSensor() {
  * 
  * @return float   the room temperature
  */
-float SensorClass::GetTemperature() {
+float SensorClass::GetTemperature()
+{
     return realTemp;
 }
 
@@ -54,7 +57,8 @@ float SensorClass::GetPreviousTemperature()
  * 
  * @return float   the room humidity
  */
-float SensorClass::GetHumidity() {
+float SensorClass::GetHumidity()
+{
     return realHum;
 }
 #endif
@@ -74,7 +78,8 @@ byte sensor_roms[DS18B20_ROM_SIZE * DS18B20_MAX_SENSOR];
  * @brief Constructor. Does required initialisations and turns the boiler off
  * 
  */
-SensorClass::SensorClass() {
+SensorClass::SensorClass()
+{
     ds18b20.findAllSensors(sensor_roms);
 }
 
@@ -82,7 +87,8 @@ SensorClass::SensorClass() {
  * @brief Read the sensor and store the result to buffer
  * 
  */
-void SensorClass::ReadSensor() {
+void SensorClass::ReadSensor()
+{
     realTemp = ds18b20.getTemperature(DS18B20_ROM_DATA(0));
 }
 /**
@@ -90,7 +96,8 @@ void SensorClass::ReadSensor() {
  * 
  * @return float   the room temperature
  */
-float SensorClass::GetTemperature() {
+float SensorClass::GetTemperature()
+{
     return realTemp;
 }
 
@@ -99,8 +106,18 @@ float SensorClass::GetTemperature() {
  * 
  * @return float   the room humidity
  */
-float SensorClass::GetHumidity() {
+float SensorClass::GetHumidity()
+{
     return 0;
 }
 
 #endif
+
+/**
+* @brief Convert a temperature mode to byte value for Zwave report
+*
+*/
+word SensorClass::Encode(const float temp)
+{
+    return (word)(temp * 100);
+}

@@ -41,17 +41,22 @@
 
 ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
-// Setup channels - we have 1 channel to get/set the desired temperature,
-//                          1 channel to get the real temperature,
-//                          1 channel to get the real humidity
+#define ZUNO_REPORT_SETPOINT    1
+#define ZUNO_REPORT_TEMP        2
+
+// Zwave channels: 1 channel to get/set the desired temperature,
+//                 1 channel to get the real temperature,
+//                 1 channel to get the real humidity
 ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
     , ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
     //,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
 );
 
-// Setup associations - we have 1 group for boiler on/off behavior
+// Zwave associations: 1 group to set boiler relay on/off
+// (association to the relay must be setup in the Zwave network master)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
+// Objects must be created in the sketch
 ButtonClass BUTTON1(PIN_BUTTON1);
 ButtonClass BUTTON2(PIN_BUTTON2);
 
@@ -62,7 +67,7 @@ TimerClass SENSOR_TIMER(10000);
 TimerClass ZWAVE_TIMER(30000);
 TimerClass TEMP_CHANGE_TIMER(30000);
 
-OLED DISPLAY;
+OLED SCREEN;
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
@@ -85,41 +90,55 @@ ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 byte lastBoilerState = 1;
 int lastTemp = 0;
 ThermostatMode lastMode = Absent;
-unsigned long const zaveRefreshDelay = 30000;
 
 /**
 * @brief Draw the screen
 *
 */
-void DrawDisplay() {
-
+void DrawDisplay()
+{
     // clear screen
-    DISPLAY.clrscr();
+    SCREEN.clrscr();
     delay(5);
 
     // sensor temperature
-    DISPLAY.setFont(zuno_font_numbers16);
-    DISPLAY.gotoXY(13, 0);
-    DISPLAY.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
+    SCREEN.setFont(zuno_font_numbers16);
+    SCREEN.gotoXY(13, 0);
+    SCREEN.fixPrint((long)(SENSOR.GetTemperature() * 10), 1);
 
     // setpoint temperature
-    DISPLAY.gotoXY(13, 4);
-    DISPLAY.fixPrint((long)(SETTINGS.GetSetPoint(MODE.CurrentThermostatMode) * 10), 1);
+    SCREEN.gotoXY(13, 4);
+    SCREEN.fixPrint((long)(SETTINGS.GetSetPoint(MODE.CurrentThermostatMode) * 10), 1);
 
     // boiler state
     if (BOILER.GetBoilerState()) {
-        DISPLAY.gotoXY(80, 4);
-        DISPLAY.writeData(flame_data);
+        SCREEN.gotoXY(80, 4);
+        SCREEN.writeData(flame_data);
     }
 
     // thermostat mode
-    DISPLAY.gotoXY(80, 0);
+    SCREEN.gotoXY(80, 0);
     switch (THERM.GetMode()) {
-        case Day: DISPLAY.writeData(sun_data); break;
-        case Night: DISPLAY.writeData(moon_data); break;
-        case Absent: DISPLAY.writeData(absent_data); break;
-        case Frost: DISPLAY.writeData(snow_data); break;
-        case Warm: DISPLAY.writeData(hot_data); break;
+        case Frost:
+            SCREEN.writeData(snow_data);
+            SCREEN.setBrightness(0x00);
+            break;
+        case Absent:
+            SCREEN.writeData(absent_data);
+            SCREEN.setBrightness(0x00);
+            break;
+        case Night:
+            SCREEN.writeData(moon_data);
+            SCREEN.setBrightness(0x00);
+            break;
+        case Day:
+            SCREEN.writeData(sun_data);
+            SCREEN.setBrightness(0xFF);
+            break;
+        case Warm:
+            SCREEN.writeData(hot_data);
+            SCREEN.setBrightness(0xFF);
+            break;
     }
 }
 
@@ -127,7 +146,8 @@ void DrawDisplay() {
 * @brief Main setup function
 *
 */
-void setup() {
+void setup()
+{
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
     SETTINGS.LoadDefaults();
@@ -143,28 +163,28 @@ void setup() {
 
     LEDS.Init();
 
-    DISPLAY.begin();
-    DISPLAY.clrscr();
+    SCREEN.begin();
+    SCREEN.clrscr();
 
     SENSOR.ReadSensor();
-    delay(100);
+    lastTemp = SENSOR.GetTemperature();
 }
 
 /**
 * @brief Main loop function
 *
 */
-void loop() {
-    // run the thermostat loop
+void loop()
+{
+    // Run the thermostat loop
     if (ZWAVE_TIMER.IsElapsed()) {
         ZWAVE_TIMER.Init();
-        LEDS.FlashAll(COLOR_WHITE);
         THERM.Loop();
-        //zunoSendReport(1); // report setpoint
-        zunoSendReport(2); // report temperature
+        //zunoSendReport(ZUNO_REPORT_SETPOINT);
+        zunoSendReport(ZUNO_REPORT_TEMP);
     }
 
-    // handle on button pressed event
+    // Handle button presses
     int change = 0;
     if (BUTTON1.ButtonHasBeenPressed())
         change = 1;
@@ -174,23 +194,17 @@ void loop() {
         int newMode = ((int)THERM.GetMode() + change) % THERMOSTAT_MODE_COUNT;
         if (newMode < 0) newMode = THERMOSTAT_MODE_COUNT - 1;
         THERM.SetMode(ThermostatMode(newMode));
-        zunoSendReport(1); // report setpoint
+        zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
-    
-    // handle is button pressed state
-    // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
-    //     LEDS.FlashAll(COLOR_WHITE);
 
-    // boiler state changed
-    LEDS.SetBlinkingState(BOILER.GetBoilerState());
-
-    // Refresh display
+    // Refresh display if thermostat mode has changed
     bool drawDisplay = false;
     if (THERM.GetMode() != lastMode) {
         lastMode = THERM.GetMode();
         drawDisplay = true;
     }
 
+    // Refresh display if temperature has changed
     if (SENSOR_TIMER.IsElapsed()) {
         SENSOR_TIMER.Init();
         SENSOR.ReadSensor();
@@ -199,11 +213,29 @@ void loop() {
         }
     }
 
+    // Refresh display if boiler state has changed
+    if (BOILER.GetBoilerState() != lastBoilerState) {
+        lastBoilerState = BOILER.GetBoilerState();
+        drawDisplay = true;
+    }
+
+    // Refresh display if required
+    if (drawDisplay)
+        DrawDisplay();
+
+    // Flash LEDs on button pressed
+    // if (BUTTON1.ButtonState == LOW || BUTTON2.ButtonState == LOW)
+    //     LEDS.FlashAll(COLOR_WHITE);
+
+    // Set LED blinking if boiler is on
+    LEDS.SetBlinkingState(BOILER.GetBoilerState());
+
+    // Set LED animation if temperature has changed
     if (TEMP_CHANGE_TIMER.IsElapsed()) {
         TEMP_CHANGE_TIMER.Init();
-        int delta = SENSOR.GetTemperature() - lastTemp;
+        float delta = SENSOR.GetTemperature() - lastTemp;
         if (delta != 0) {
-            int period = 100 / delta;
+            int period = 100 / abs(delta);
             if (period < 100) period = 100;
             if (period > 1000) period = 1000;
             if (delta > 0)
@@ -216,17 +248,10 @@ void loop() {
         lastTemp = SENSOR.GetTemperature();
     }
 
-    if (BOILER.GetBoilerState() != lastBoilerState) {
-        lastBoilerState = BOILER.GetBoilerState();
-        drawDisplay = true;
-    }
-
-    if (drawDisplay)
-        DrawDisplay();
-
+    // Refresh LED states
     LEDS.DrawAll(THERM.GetMode());
 
-    delay(10);
+    delay(1);
 }
 
 
@@ -234,20 +259,10 @@ void loop() {
 * @brief Zwave Setter for Desired Temperature
 *
 */
-void ZSetSetpoint(byte value) {
-    //MY_SERIAL.print("ZSetSetpoint to ");
-    //MY_SERIAL.println(value);
+void ZSetSetpoint(byte value)
+{
     if (THERM.GetMode() != MODE.Decode(value)) {
-        /*
-        MY_SERIAL.print("Sp=");
-        switch (MODE.Decode(value)) {
-            case Frost: MY_SERIAL.println("Frost"); break;
-            case Absent: MY_SERIAL.println("Absent"); break;
-            case Night: MY_SERIAL.println("Night"); break;
-            case Day: MY_SERIAL.println("Day"); break;
-            case Warm: MY_SERIAL.println("Warm"); break;
-        }
-        */
+        LEDS.FlashAll(COLOR_BLUE);
         THERM.SetMode(MODE.Decode(value));
         zunoSendReport(1); // report setpoint
     }
@@ -257,29 +272,29 @@ void ZSetSetpoint(byte value) {
 * @brief Zwave Getter for Desired Temperature
 *
 */
-byte ZGetSetpoint() {
-    //MY_SERIAL.print("ZGetSetpoint ");
-    //MY_SERIAL.println((byte)THERM.GetMode());
-    return (byte)MODE.Encode(THERM.GetMode());
+byte ZGetSetpoint()
+{
+    LEDS.FlashAll(COLOR_YELLOW);
+    return MODE.Encode(THERM.GetMode());
 }
 
 /**
 * @brief Zwave Getter for Real Temperature
 *
 */
-word ZGetRealTemperature() {
-    //MY_SERIAL.print("ZGetRealTemp ");
-    word temp = (word)(SENSOR.GetTemperature() * 100);
-    //MY_SERIAL.println(temp);
-    return temp;
+word ZGetRealTemperature()
+{
+    LEDS.FlashAll(COLOR_GREEN);
+    return SENSOR.Encode(SENSOR.GetTemperature());
 }
 
 /**
 * @brief Zwave Getter for Real Humidity
 *
 *//*
-byte RealHumidityGetter() {
-return fromFloat(THERM.GetHumidity());
+byte RealHumidityGetter()
+{
+    return fromFloat(THERM.GetHumidity());
 }*/
 
 /**
@@ -290,13 +305,10 @@ return fromFloat(THERM.GetHumidity());
 *         We use zero based index of the channel instead of typical
 *         Getter/Setter index of Z-Uno.
 *         See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h
-*
-* @param
 */
-void zunoCallback(void) {
-    //MY_SERIAL.println();
-    //MY_SERIAL.print("Callback type ");
-    //MY_SERIAL.println(callback_data.type);
+void zunoCallback(void)
+{
+    LEDS.FlashAll(COLOR_WHITE);
     switch (callback_data.type) {
         case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
         case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;

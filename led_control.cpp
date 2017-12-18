@@ -3,10 +3,7 @@
 LedControlClass::LedControlClass(LedClass* led0, LedClass* led1, LedClass* led2,
     TimerClass* flashTimer, TimerClass* blinkTimer, TimerClass* animationTimer) :
     LED0(led0), LED1(led1), LED2(led2),
-    FLASH_TIMER(flashTimer), BLINK_TIMER(blinkTimer), ANIMATION_TIMER(animationTimer)
-{
-
-}
+    FLASH_TIMER(flashTimer), BLINK_TIMER(blinkTimer), ANIMATION_TIMER(animationTimer) { }
 
 void LedControlClass::Init()
 {
@@ -40,6 +37,7 @@ void LedControlClass::SetBlinkingState(bool state)
 
 /**
  * @brief Controls LED animation
+ * 
  * @param direction 0=off, -1=down, 1=up
  * @param period millis between each frame of the animation
  */
@@ -84,24 +82,25 @@ void LedControlClass::DrawAll(ThermostatMode mode)
                 FLASH_TIMER->Init();
         }
     }
-
     // Draw animations
     ledColor0 = ledColor;
-    ledColor1 = ledColor; 
+    ledColor1 = ledColor;
     ledColor2 = ledColor;
     if (animationDirection != 0) {
         if (ANIMATION_TIMER->IsElapsed()) {
             ANIMATION_TIMER->Init();
             animationIndex += animationDirection;
             if (animationIndex < 0)
-                animationIndex = LED_COUNT + 2 - 1;
-            if (animationIndex >= LED_COUNT + 2)
+                animationIndex = LED_COUNT;
+            if (animationIndex >= LED_COUNT + 1)
                 animationIndex = 0;
         }
         switch (animationIndex) {
             case 1: ledColor0 = COLOR_BLACK; break;
             case 2: ledColor1 = COLOR_BLACK; break;
             case 3: ledColor2 = COLOR_BLACK; break;
+            case 0: // no break
+            default: break;
         }
     }
 
