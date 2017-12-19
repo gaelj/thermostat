@@ -65,10 +65,10 @@ void SettingsClass::LoadDefaults() {
     TheSettings->Setpoint_Night = 15.0;
     TheSettings->Setpoint_Day = 19.0;
     TheSettings->Setpoint_Warm = 22.0;
-    TheSettings->Kp = 1.0;
+    TheSettings->Kp = 0.5;
     TheSettings->Ki = 0.0;
     TheSettings->Kd = 0.0;
-    TheSettings->SampleTime = 20 * 60000; // 30000
+    TheSettings->SampleTime = 10 * 60000;
     /*
     TheSettings->HysteresisRange = 0.5;
     TheSettings->ATuneStep = 50;

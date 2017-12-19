@@ -1,5 +1,8 @@
 #include "oleddisplay.h"
 #include "icons.h"
+#include "timer.h"
+#include <ZUNO_OLED_I2C.h>
+#include <ZUNO_OLED_FONT_NUMB16.h>
 
 OLED SCREEN;
 TimerClass SENSOR_TIMER(10000);
@@ -55,23 +58,25 @@ void OledDisplayClass::DrawDisplay()
 
     // thermostat mode
     SCREEN.gotoXY(80, 0);
+    char* data = absent_data;
     switch (THERM->GetMode()) {
         case Frost:
-            SCREEN.writeData(snow_data);
+            data = snow_data;
             break;
-        case Absent:
-            SCREEN.writeData(absent_data);
-            break;
+        //case Absent:
+        //    data = absent_data;
+        //    break;
         case Night:
-            SCREEN.writeData(moon_data);
+            data = moon_data;
             break;
         case Day:
-            SCREEN.writeData(sun_data);
+            data = sun_data;
             break;
         case Warm:
-            SCREEN.writeData(hot_data);
+            data = hot_data;
             break;
     }
+    SCREEN.writeData(data);
 }
 
 void OledDisplayClass::SetPower(bool value)

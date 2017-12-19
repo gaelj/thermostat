@@ -2,12 +2,8 @@
 #define OLEDDISPLAY_H
 
 #include <Arduino.h>
-#include <Wire.h>
-#include <ZUNO_OLED_I2C.h>
-#include <ZUNO_OLED_FONT_NUMB16.h>
 
 #include "settings.h"
-#include "timer.h"
 #include "sensor.h"
 #include "boiler.h"
 #include "thermo_control.h"

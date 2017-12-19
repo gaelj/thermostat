@@ -62,7 +62,6 @@ int ThermostatClass::Loop() {
         //Serial.println("NW");
 
         float newOutput = PIDREG->Compute(temp, setPoint);
-        
         if (newOutput != -1)
             LastOutput = newOutput;
         WindowStartTime = millis();
