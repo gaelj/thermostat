@@ -57,8 +57,7 @@ float PID::Compute(const float input, const float mySetpoint) {
     //Add Proportional on Measurement, if P_ON_M is specified
     if (!pOnE) outputSum -= kp * dInput;
 
-    if (outputSum > outMax) outputSum = outMax;
-    else if (outputSum < outMin) outputSum = outMin;
+    BoundValue(&outputSum);
 
     //Add Proportional on Error, if P_ON_E is specified
     if (pOnE) lastOutput = kp * error;
@@ -67,8 +66,7 @@ float PID::Compute(const float input, const float mySetpoint) {
     //Compute Rest of PID Output
     lastOutput += outputSum - kd * dInput;
 
-    if (lastOutput > outMax) lastOutput = outMax;
-    else if (lastOutput < outMin) lastOutput = outMin;
+    BoundValue(&lastOutput);
 
     //Remember some variables for next time
     lastInput = input;
@@ -121,8 +119,7 @@ void PID::SetMode(int Mode) {
 void PID::Initialize() {
     outputSum = lastOutput;
     lastInput = lastInput;
-    if (outputSum > outMax) outputSum = outMax;
-    else if (outputSum < outMin) outputSum = outMin;
+    BoundValue(&outputSum);
 }
 
 /* SetControllerDirection(...)*************************************************
@@ -147,3 +144,9 @@ void PID::SetControllerDirection(int Direction) {
  ******************************************************************************/
 int PID::GetMode() { return  inAuto ? AUTOMATIC : MANUAL; }
 int PID::GetDirection() { return controllerDirection; }
+
+void PID::BoundValue(float* value)
+{
+    if (*value > outMax) *value = outMax;
+    else if (*value < outMin) *value = outMin;
+}

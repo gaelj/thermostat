@@ -43,6 +43,7 @@ public:
 private:
     SettingsClass* SETTINGS;
     void Initialize();
+    void BoundValue(float*);
     void SetTunings(int);                 // * While most users will set the tunings once in the 
                                           //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control

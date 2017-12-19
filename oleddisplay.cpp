@@ -8,9 +8,9 @@ OLED SCREEN;
 TimerClass SENSOR_TIMER(10000);
 
 OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
-        BoilerClass* boiler, ThermostatClass* thermostat)
-        : SETTINGS(settings), SENSOR(sensor),
-            BOILER(boiler), THERM(thermostat)
+    BoilerClass* boiler, ThermostatClass* thermostat)
+    : SETTINGS(settings), SENSOR(sensor),
+        BOILER(boiler), THERM(thermostat)
 {
     lastBoilerState = 1;
     lastMode = Absent;
