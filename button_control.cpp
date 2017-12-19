@@ -27,8 +27,8 @@ void ButtonControlClass::HandlePressedButtons()
     if (BUTTON2.ButtonHasBeenPressed)
         button2Down = true;
 
-    if (button1Down && button2Down) {
-        // double press
+    if ((button1Down && button2Down) || (!power && (button1Down || button2Down))) {
+        // toggle power
         power = !power;
         LEDS->SetPower(power);
         DISPLAY->SetPower(power);
