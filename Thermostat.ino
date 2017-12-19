@@ -45,12 +45,15 @@
 ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
 #define ZUNO_REPORT_SETPOINT    1
-#define ZUNO_REPORT_TEMP        2
+#define ZUNO_REPORT_EXT_TEMP    2
+#define ZUNO_REPORT_TEMP        3
 
 // Zwave channels: 1 channel to get/set the desired temperature,
+//                 1 channel to (get/)set the exterior temperature,
 //                 1 channel to get the real temperature,
 //                 1 channel to get the real humidity
 ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
+    , ZUNO_SWITCH_MULTILEVEL(ZGetExteriorTemperature, ZSetExteriorTemperature)
     , ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
     //, ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
 );
@@ -131,6 +134,7 @@ void loop()
         ZWAVE_TIMER.Start();
         THERM.Loop();
         zunoSendReport(ZUNO_REPORT_SETPOINT);
+        zunoSendReport(ZUNO_REPORT_EXT_TEMP);
         zunoSendReport(ZUNO_REPORT_TEMP);
     }
 
@@ -140,6 +144,16 @@ void loop()
         delay(loopDelay - (millis() - loopStart));
 }
 
+
+/**
+* @brief Zwave Getter for Desired Temperature
+*
+*/
+byte ZGetSetpoint()
+{
+    LEDS.SetFlash(GET_SETPOINT_COLOR);
+    return MODE.Encode(THERM.GetMode());
+}
 
 /**
 * @brief Zwave Setter for Desired Temperature
@@ -155,13 +169,26 @@ void ZSetSetpoint(byte value)
 }
 
 /**
-* @brief Zwave Getter for Desired Temperature
+* @brief Zwave Getter for external Temperature
 *
 */
-byte ZGetSetpoint()
+byte ZGetExteriorTemperature()
 {
     LEDS.SetFlash(GET_SETPOINT_COLOR);
-    return MODE.Encode(THERM.GetMode());
+    return THERM.EncodeTemperature(THERM.ExteriorTemperature);
+}
+
+/**
+* @brief Zwave Setter for external Temperature
+*
+*/
+void ZSetExteriorTemperature(byte value)
+{
+    if (THERM.ExteriorTemperature != THERM.DecodeTemperature(value)) {
+        LEDS.SetFlash(SET_SETPOINT_COLOR);
+        THERM.ExteriorTemperature = THERM.DecodeTemperature(value);
+        //zunoSendReport(ZUNO_REPORT_SETPOINT);
+    }
 }
 
 /**
@@ -196,9 +223,13 @@ void zunoCallback(void)
 {
     LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     switch (callback_data.type) {
-        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = MODE.Encode(THERM.GetMode()); break;
-        case ZUNO_CHANNEL1_SETTER: THERM.SetMode(MODE.Decode(callback_data.param.bParam)); break;
-        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = SENSOR.Encode(SENSOR.GetTemperature()); break;
+        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
+        case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
+
+        case ZUNO_CHANNEL2_GETTER: callback_data.param.bParam = ZGetExteriorTemperature(); break;
+        case ZUNO_CHANNEL2_SETTER: ZSetExteriorTemperature(callback_data.param.bParam); break;
+
+        case ZUNO_CHANNEL3_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
         default: break;
     }
 }

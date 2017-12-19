@@ -15,6 +15,9 @@ public:
     int Loop();
     void SetMode(ThermostatMode value);
     ThermostatMode GetMode();
+    byte EncodeTemperature(float temp);
+    float DecodeTemperature(byte encoded);
+    float ExteriorTemperature;
 
 private:
     SettingsClass* SETTINGS;

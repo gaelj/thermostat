@@ -17,6 +17,7 @@ ThermostatClass::ThermostatClass(SettingsClass* settings, SensorClass* sensor,
     WindowStartTime = 0;
     LastOutput = 0;
     MODE->CurrentThermostatMode = Absent;
+    ExteriorTemperature = 10;
 }
 
 /**
@@ -91,4 +92,31 @@ bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const floa
     */
 
     return state;
+}
+
+/**
+* @brief Encode a real temperature to a value from 0 to 100
+*
+* @param temp   real temperature (float). Precision of 0.5°C. Must be between -25°C and +24°C (100 values)
+*
+* @return byte ranging from 0 to 100
+*/
+byte ThermostatClass::EncodeTemperature(float temp)
+{
+    int value = round((temp + 25) * 2);
+    if (value < 0) value = 0;
+    if (value > 99) value = 99;
+    return (byte)value;
+}
+
+/**
+* @brief Decode a byte value from 0 to 100 to a real temperature
+*
+* @param encoded   encoded temperature (byte)
+*
+* @return float
+*/
+float ThermostatClass::DecodeTemperature(byte encoded)
+{
+    return (((float)encoded) / 2) - 25;
 }

@@ -39,8 +39,12 @@ void OledDisplayClass::DrawDisplay()
     SCREEN.gotoXY(13, 0);
     SCREEN.fixPrint((long)(10 * SENSOR->GetTemperature()), 1);
 
+    // exterior temperature
+    SCREEN.gotoXY(13, 3);
+    SCREEN.fixPrint((long)(10 * THERM->ExteriorTemperature), 1);
+
     // setpoint temperature
-    SCREEN.gotoXY(13, 4);
+    SCREEN.gotoXY(13, 6);
     SCREEN.fixPrint((long)(10 * SETTINGS->GetSetPoint(THERM->GetMode())), 1);
 
     // boiler state
