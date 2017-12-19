@@ -156,11 +156,10 @@ void LedControlClass::DrawAll()
         DoFlash(FlashDequeue());
     }
     if (FLASH_TIMER.IsActive) {
+        ledColor = COLOR_BLACK;
         if (!FLASH_TIMER.IsElapsed()) {
-            if (flashCounter % 2 == 1 && flashCounter >= FLASHES - 3)
+            if (flashCounter == 2)
                 ledColor = flashColor;
-            else
-                ledColor = COLOR_BLACK;
         }
         else {
             flashCounter--;

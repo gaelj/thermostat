@@ -1,5 +1,5 @@
 /**
-* @brief Thermostat on Z-uino
+* @brief Intelligent thermostat implementation on Z-uno platform
 *
 */
 
@@ -40,7 +40,12 @@
 
 #define MY_SERIAL Serial
 
-#define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER)    ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)	
+#define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER) \
+    ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, \
+                            SENSOR_MULTILEVEL_SCALE_CELSIUS, \
+                            SENSOR_MULTILEVEL_SIZE_TWO_BYTES, \
+                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, \
+                            GETTER)
 
 ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
@@ -50,9 +55,10 @@ ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 // Zwave channels: 1 channel to get/set the desired temperature,
 //                 1 channel to get the real temperature,
 //                 1 channel to get the real humidity
-ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
+ZUNO_SETUP_CHANNELS( \
+      ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
     , ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
-    //,ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
+    //, ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
 );
 
 // Zwave associations: 1 group to set boiler relay on/off

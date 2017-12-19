@@ -11,7 +11,7 @@
 #include "thermo_control.h"
 
 #define LED_COUNT       3
-#define FLASHES         5 // 1-0-1-0-0
+#define FLASHES         3 // 0-1-0
 #define FLASH_QUEUE_LEN 32
 
 #define BOILER_BLINK_COLOR      COLOR_RED
