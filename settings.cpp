@@ -65,15 +65,17 @@ void SettingsClass::LoadDefaults() {
     TheSettings->Setpoint_Night = 15.0;
     TheSettings->Setpoint_Day = 19.0;
     TheSettings->Setpoint_Warm = 22.0;
-    TheSettings->Kp = 2;
-    TheSettings->Ki = 0.5;
-    TheSettings->Kd = 2;
+    TheSettings->Kp = 1.0;
+    TheSettings->Ki = 0.0;
+    TheSettings->Kd = 0.0;
     TheSettings->SampleTime = 20 * 60000; // 30000
+    /*
     TheSettings->HysteresisRange = 0.5;
     TheSettings->ATuneStep = 50;
     TheSettings->ATuneNoise = 1;
     TheSettings->ATuneStartValue = 100;
     TheSettings->ATuneLookBack = 20;
+    */
 }
 
 /**
@@ -108,12 +110,14 @@ void SettingsClass::DumpSettings() {
     Serial.println(TheSettings->Kp);
     Serial.println(TheSettings->Ki);
     Serial.println(TheSettings->Kd);
+    /*
+    Serial.println(TheSettings->HysteresisRange);
     Serial.println(TheSettings->ATuneStep);
     Serial.println(TheSettings->ATuneNoise);
     Serial.println(TheSettings->ATuneStartValue);
     Serial.println(TheSettings->ATuneLookBack);
+    */
     Serial.println(TheSettings->SampleTime);
-    Serial.println(TheSettings->HysteresisRange);
     Serial.println(TheSettings->crc8);
     //Serial.println("============");
 }

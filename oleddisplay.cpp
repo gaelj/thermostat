@@ -58,23 +58,18 @@ void OledDisplayClass::DrawDisplay()
     switch (THERM->GetMode()) {
         case Frost:
             SCREEN.writeData(snow_data);
-            SCREEN.setBrightness(0x00);
             break;
         case Absent:
             SCREEN.writeData(absent_data);
-            SCREEN.setBrightness(0x00);
             break;
         case Night:
             SCREEN.writeData(moon_data);
-            SCREEN.setBrightness(0x00);
             break;
         case Day:
             SCREEN.writeData(sun_data);
-            SCREEN.setBrightness(0xFF);
             break;
         case Warm:
             SCREEN.writeData(hot_data);
-            SCREEN.setBrightness(0xFF);
             break;
     }
 }

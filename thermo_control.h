@@ -5,13 +5,14 @@
 #include "settings.h"
 #include "sensor.h"
 #include "boiler.h"
-#include "hysteresis.h"
+#include "PID_v1.h"
 #include "thermostat_mode.h"
 
 class ThermostatClass {
 public:
-    ThermostatClass(SettingsClass* settings, SensorClass* sensor,
-        BoilerClass* boiler, HysteresisClass* hist, ThermostatModeClass* mode);
+    ThermostatClass(PID* pid, SettingsClass* settings, SensorClass* sensor,
+        BoilerClass* boiler, ThermostatModeClass* mode);
+    void Init();
     int Loop();
     void SetMode(ThermostatMode value);
     ThermostatMode GetMode();
@@ -23,7 +24,7 @@ private:
     SettingsClass* SETTINGS;
     SensorClass* SENSOR;
     BoilerClass* BOILER;
-    HysteresisClass* HYST;
+    PID* PIDREG;
     ThermostatModeClass* MODE;
     unsigned long WindowStartTime;
     bool GetBoilerStateByWindowWidth(float, float, float);

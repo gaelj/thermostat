@@ -11,13 +11,13 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  ***************************************************************************/
-PID::PID(SettingsClass* settings): SETTINGS(settings) { }
+PID::PID(SettingsClass* settings): SETTINGS(settings) {
+    lastInput = 0;
+    lastOutput = 0;
+    outputSum = 0;
+}
 
-void PID::Create(float* Input, float* Output, 
-        float Kp, float Ki, float Kd, int POn, int ControllerDirection,
-        float Min, float Max) {
-    myOutput = Output;
-    myInput = Input;
+void PID::Create(int POn, int ControllerDirection, float Min, float Max) {
     inAuto = false;
 
     // Set output limits
@@ -26,7 +26,7 @@ void PID::Create(float* Input, float* Output,
     outMax = Max;
     
     SetControllerDirection(ControllerDirection);
-    SetTunings(Kp, Ki, Kd, POn);
+    SetTunings(POn);
 
     if (millis() > SETTINGS->TheSettings->SampleTime)
         lastTime = millis() - SETTINGS->TheSettings->SampleTime;
@@ -41,44 +41,40 @@ void PID::Create(float* Input, float* Output,
  *   pid Output needs to be computed.  returns true when the output is computed,
  *   false when nothing has been done.
  **********************************************************************************/
-bool PID::Compute(float mySetpoint) {
-    Serial.println("Compute PID...");
-    if (!inAuto) return false;
+float PID::Compute(const float input, const float mySetpoint) {
+    //Serial.println("Computing PID");
+
+    if (!inAuto) return -1;
     unsigned long now = millis();
     unsigned long timeChange = (now - lastTime);
+    //if (timeChange < SETTINGS->TheSettings->SampleTime) return -1;
 
-    if (timeChange >= SETTINGS->TheSettings->SampleTime) {
-        //Compute all the working error variables
-        float input = *myInput;
-        float error = mySetpoint - input;
-        float dInput = (input - lastInput);
-        outputSum += (ki * error);
+    //Compute all the working error variables
+    float error = mySetpoint - input;
+    float dInput = (input - lastInput);
+    outputSum += (ki * error);
 
-        //Add Proportional on Measurement, if P_ON_M is specified
-        if (!pOnE) outputSum -= kp * dInput;
+    //Add Proportional on Measurement, if P_ON_M is specified
+    if (!pOnE) outputSum -= kp * dInput;
 
-        if (outputSum > outMax) outputSum = outMax;
-        else if (outputSum < outMin) outputSum = outMin;
+    if (outputSum > outMax) outputSum = outMax;
+    else if (outputSum < outMin) outputSum = outMin;
 
-        //Add Proportional on Error, if P_ON_E is specified
-        float output;
-        if (pOnE) output = kp * error;
-        else output = 0;
+    //Add Proportional on Error, if P_ON_E is specified
+    if (pOnE) lastOutput = kp * error;
+    else lastOutput = 0;
 
-        //Compute Rest of PID Output
-        output += outputSum - kd * dInput;
+    //Compute Rest of PID Output
+    lastOutput += outputSum - kd * dInput;
 
-        if (output > outMax) output = outMax;
-        else if (output < outMin) output = outMin;
-        *myOutput = output;
+    if (lastOutput > outMax) lastOutput = outMax;
+    else if (lastOutput < outMin) lastOutput = outMin;
 
-        //Remember some variables for next time
-        lastInput = input;
-        lastTime = now;
+    //Remember some variables for next time
+    lastInput = input;
+    lastTime = now;
 
-        return true;
-    }
-    return false;
+    return lastOutput;
 }
 
 /* SetTunings(...)*************************************************************
@@ -86,18 +82,17 @@ bool PID::Compute(float mySetpoint) {
  * it's called automatically from the constructor, but tunings can also
  * be adjusted on the fly during normal operation
  ******************************************************************************/
-void PID::SetTunings(float Kp, float Ki, float Kd, int POn) {
-    if (Kp < 0 || Ki < 0 || Kd < 0) return;
+void PID::SetTunings(int POn) {
+    if (SETTINGS->TheSettings->Kp < 0 || SETTINGS->TheSettings->Ki < 0 || SETTINGS->TheSettings->Kd < 0)
+        return;
 
     pOn = POn;
     pOnE = POn == P_ON_E;
 
-    dispKp = Kp; dispKi = Ki; dispKd = Kd;
-
     float SampleTimeInSec = float(SETTINGS->TheSettings->SampleTime) / 1000;
-    kp = Kp;
-    ki = Ki * SampleTimeInSec;
-    kd = Kd / SampleTimeInSec;
+    kp = SETTINGS->TheSettings->Kp;
+    ki = SETTINGS->TheSettings->Ki * SampleTimeInSec;
+    kd = SETTINGS->TheSettings->Kd / SampleTimeInSec;
 
     if (controllerDirection == REVERSE) {
         kp = (0 - kp);
@@ -120,12 +115,12 @@ void PID::SetMode(int Mode) {
 }
 
 /* Initialize()****************************************************************
- *	does all the things that need to happen to ensure a bumpless transfer
+ *    does all the things that need to happen to ensure a bumpless transfer
  *  from manual to automatic mode.
  ******************************************************************************/
 void PID::Initialize() {
-    outputSum = *myOutput;
-    lastInput = *myInput;
+    outputSum = lastOutput;
+    lastInput = lastInput;
     if (outputSum > outMax) outputSum = outMax;
     else if (outputSum < outMin) outputSum = outMin;
 }
@@ -150,8 +145,5 @@ void PID::SetControllerDirection(int Direction) {
  * functions query the internal state of the PID.  they're here for display
  * purposes.  this are the functions the PID Front-end uses for example
  ******************************************************************************/
-float PID::GetKp() { return  dispKp; }
-float PID::GetKi() { return  dispKi; }
-float PID::GetKd() { return  dispKd; }
 int PID::GetMode() { return  inAuto ? AUTOMATIC : MANUAL; }
 int PID::GetDirection() { return controllerDirection; }

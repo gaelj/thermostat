@@ -10,14 +10,19 @@
   * @brief Constructor. Turns off the boiler
   *
   */
-ThermostatClass::ThermostatClass(SettingsClass* settings, SensorClass* sensor,
-        BoilerClass* boiler, HysteresisClass* hist, ThermostatModeClass* mode) :
-        SETTINGS(settings), SENSOR(sensor), BOILER(boiler), HYST(hist), MODE(mode) {
+ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass* sensor,
+    BoilerClass* boiler, ThermostatModeClass* mode) :
+    PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler), MODE(mode) { }
+
+void ThermostatClass::Init()
+{
     BOILER->SetBoilerState(false);
     WindowStartTime = 0;
     LastOutput = 0;
     MODE->CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
+    PIDREG->Create(P_ON_E, REVERSE, 0, 1);
+    PIDREG->SetMode(AUTOMATIC);
 }
 
 /**
@@ -55,7 +60,11 @@ int ThermostatClass::Loop() {
     if (WindowStartTime == 0 || ((millis() - WindowStartTime) > SETTINGS->TheSettings->SampleTime)) {
         //time to shift the Relay Window
         //Serial.println("NW");
-        LastOutput = HYST->Loop(temp, setPoint);
+
+        float newOutput = PIDREG->Compute(temp, setPoint);
+        
+        if (newOutput != -1)
+            LastOutput = newOutput;
         WindowStartTime = millis();
     }
     // output = AUTOPID->Loop(temp);

@@ -12,7 +12,7 @@
 #define THERMOSTAT_MAX 25.0       // maximum thermostat setting
 #define THERMOSTAT_DEFAULT 18.0   // default thermostat setting
 
-#define BOILER_MIN_TIME      3 * 60000 // 3mn min time between boiler state changes
+#define BOILER_MIN_TIME      1 * 60000 // 3mn min time between boiler state changes
 
 
 /**
@@ -30,11 +30,13 @@ struct settings_s {
     float Ki;                  // (I)ntegral Tuning Parameter
     float Kd;                  // (D)erivative Tuning Parameter
     unsigned long SampleTime;  // The time between 2 measurements
+    /*
     float HysteresisRange;     // The number of degrees below setpoint at which heating is set
     float ATuneStep;
     float ATuneNoise;
     float ATuneStartValue;
     float ATuneLookBack;
+    */
     byte  crc8;
 };
 

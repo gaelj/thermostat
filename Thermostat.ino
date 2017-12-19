@@ -28,7 +28,6 @@
 
 #include "settings.h"
 #include "boiler.h"
-#include "hysteresis.h"
 #include "thermo_control.h"
 #include "thermostat_mode.h"
 #include "led.h"
@@ -67,16 +66,16 @@ TimerClass ZWAVE_TIMER(30000);
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
-HysteresisClass HIST(&TheSettings);
 SensorClass SENSOR;
 BoilerClass BOILER;
+
+PID PIDREG(&SETTINGS);
 /*
-PID pid(&SETTINGS);
 PID_ATune atune;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
-ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
-*/
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
+*/
+ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER, &MODE);
 OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
 ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
@@ -103,6 +102,7 @@ void setup()
     BUTTONS.Init();
     LEDS.Init();
     DISPLAY.Init();
+    THERM.Init();
 }
 
 /**
@@ -221,7 +221,7 @@ byte RealHumidityGetter()
 */
 void zunoCallback(void)
 {
-    LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
+    //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     switch (callback_data.type) {
         case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
         case ZUNO_CHANNEL1_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
