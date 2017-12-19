@@ -7,16 +7,22 @@
 #include "button.h"
 #include "pinout.h"
 #include "thermo_control.h"
+#include "led_control.h"
+#include "oleddisplay.h"
 
 class ButtonControlClass
 {
 public:
-    ButtonControlClass(ThermostatClass* thermostat);
+    ButtonControlClass(ThermostatClass* thermostat, LedControlClass* leds, OledDisplayClass* display);
     void Init();
     void HandlePressedButtons();
 
 protected:
     ThermostatClass* THERM;
+    LedControlClass* LEDS;
+    OledDisplayClass* DISPLAY;
+    bool button1Down, button2Down;
+    bool power;
 };
 
 #endif

@@ -17,17 +17,17 @@ class OledDisplayClass
 {
 public:
     OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
-        BoilerClass* boiler, ThermostatClass* thermostat, ThermostatModeClass* mode);
+        BoilerClass* boiler, ThermostatClass* thermostat);
     void Init();
     void DrawDisplay();
     bool DisplayRedrawNeeded();
+    void SetPower(bool value);
 
 private:
     SettingsClass* SETTINGS;
     SensorClass* SENSOR;
     BoilerClass* BOILER;
     ThermostatClass* THERM;
-    ThermostatModeClass* MODE;
     byte lastBoilerState;
     float lastTemp;
     ThermostatMode lastMode;

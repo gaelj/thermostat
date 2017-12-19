@@ -5,9 +5,9 @@ OLED SCREEN;
 TimerClass SENSOR_TIMER(10000);
 
 OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
-        BoilerClass* boiler, ThermostatClass* thermostat, ThermostatModeClass* mode)
+        BoilerClass* boiler, ThermostatClass* thermostat)
         : SETTINGS(settings), SENSOR(sensor),
-            BOILER(boiler), THERM(thermostat), MODE(mode)
+            BOILER(boiler), THERM(thermostat)
 {
     lastBoilerState = 1;
     lastMode = Absent;
@@ -41,7 +41,7 @@ void OledDisplayClass::DrawDisplay()
 
     // setpoint temperature
     SCREEN.gotoXY(13, 4);
-    SCREEN.fixPrint((long)(10 * SETTINGS->GetSetPoint(MODE->CurrentThermostatMode)), 1);
+    SCREEN.fixPrint((long)(10 * SETTINGS->GetSetPoint(THERM->GetMode())), 1);
 
     // boiler state
     if (BOILER->GetBoilerState()) {
@@ -74,6 +74,15 @@ void OledDisplayClass::DrawDisplay()
             break;
     }
 }
+
+void OledDisplayClass::SetPower(bool value)
+{
+    if (value)
+        SCREEN.on();
+    else
+        SCREEN.off();
+}
+
 
 /**
 * @brief Should the display be redrawn, due to source data update. Reads the temperature sensor

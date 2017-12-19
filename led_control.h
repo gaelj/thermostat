@@ -28,6 +28,7 @@ public:
     void SetBlinkingState();
     void SetAnimationState();
     void DrawAll();
+    void SetPower(bool value);
 
 private:
     SensorClass* SENSOR;
@@ -50,6 +51,7 @@ private:
     byte FlashDequeue();
     void DoFlash(byte color);
     byte flashQueueSize;
+    bool power;
 };
 
 #endif // LED_CONTROL_H

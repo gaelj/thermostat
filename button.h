@@ -12,7 +12,9 @@ class ButtonClass
 public:
     ButtonClass(byte pin);
     void Init();
-    bool ButtonHasBeenPressed();
+    void ReadButton();
+    bool ButtonHasBeenPressed;
+    bool ButtonHasBeenReleased;
     byte ButtonState;
 
 private:

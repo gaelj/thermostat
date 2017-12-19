@@ -74,9 +74,9 @@ AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&AUTOPID, &SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
-OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &MODE);
+OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
-ButtonControlClass BUTTONS(&THERM);
+ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
 
 
 /**

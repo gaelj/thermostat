@@ -4,6 +4,8 @@ ButtonClass::ButtonClass(byte pin)
 {
     Pin = pin;
     ButtonState = HIGH;
+    ButtonHasBeenPressed = false;
+    ButtonHasBeenReleased = false;
 }
 
 void ButtonClass::Init()
@@ -11,14 +13,20 @@ void ButtonClass::Init()
     pinMode(Pin, INPUT);
 }
 
-bool ButtonClass::ButtonHasBeenPressed()
+void ButtonClass::ReadButton()
 {
     byte reading = digitalRead(Pin);
     if (reading != ButtonState) {
         ButtonState = reading;
         if (ButtonState == LOW) {
-            return true;
+            ButtonHasBeenPressed = true;
+            return;
+        }
+        if (ButtonState == HIGH) {
+            ButtonHasBeenReleased = true;
+            return;
         }
     }
-    return false;
+    ButtonHasBeenPressed = false;
+    ButtonHasBeenReleased = false;
 }

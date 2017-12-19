@@ -21,6 +21,12 @@ LedControlClass::LedControlClass(SensorClass* sensor, BoilerClass* boiler, Therm
     animationDirection = 0;
     animationIndex = 0;
     lastTemp = 0;
+    power = true;
+}
+
+void LedControlClass::SetPower(bool value)
+{
+    power = value;
 }
 
 void LedControlClass::Init()
@@ -54,6 +60,11 @@ byte LedControlClass::FlashDequeue()
 
 void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
 {
+    if (!power) {
+        color0 = COLOR_BLACK;
+        color1 = COLOR_BLACK;
+        color2 = COLOR_BLACK;
+    }
     LED0.DisplayColor(color0);
     LED1.DisplayColor(color1);
     LED2.DisplayColor(color2);
@@ -61,8 +72,7 @@ void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
 
 void LedControlClass::SetFlash(byte color)
 {
-    if (color != flashColor && color != flashQueue[0])
-        FlashEnqueue(color);
+    FlashEnqueue(color);
 }
 
 void LedControlClass::DoFlash(byte color)
