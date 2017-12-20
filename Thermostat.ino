@@ -77,7 +77,7 @@ AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER, &MODE);
-OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM);
+OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
 ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
 
@@ -118,8 +118,7 @@ void loop()
     BUTTONS.HandlePressedButtons();
 
     // Refresh display if required
-    if (DISPLAY.DisplayRedrawNeeded())
-        DISPLAY.DrawDisplay();
+    DISPLAY.DrawDisplay();
 
     // Set LED blinking if boiler is on
     LEDS.SetBlinkingState();

@@ -34,6 +34,8 @@ public:
 
     void SetMode(int);                    // * sets PID to either Manual (0) or Auto (non-0)
 
+    float outputSum, lastInput, lastOutput;
+
 private:
     SettingsClass* SETTINGS;
     void Initialize();
@@ -49,7 +51,6 @@ private:
     float kd;                             // * (D)erivative Tuning Parameter
 
     unsigned long lastTime;
-    float outputSum, lastInput, lastOutput;
     float outMin, outMax;
     bool inAuto;
 };

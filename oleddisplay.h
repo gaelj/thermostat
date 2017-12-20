@@ -9,14 +9,15 @@
 #include "thermo_control.h"
 #include "thermostat_mode.h"
 
+#define OLED_PAGE_COUNT     2
+
 class OledDisplayClass
 {
 public:
     OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
-        BoilerClass* boiler, ThermostatClass* thermostat);
+        BoilerClass* boiler, ThermostatClass* thermostat, PID* pid);
     void Init();
     void DrawDisplay();
-    bool DisplayRedrawNeeded();
     void SetPower(bool value);
 
 private:
@@ -24,9 +25,14 @@ private:
     SensorClass* SENSOR;
     BoilerClass* BOILER;
     ThermostatClass* THERM;
+    PID* PIDREG;
     byte lastBoilerState;
     float lastTemp;
     ThermostatMode lastMode;
+    byte currentPage;
+    bool DisplayRedrawNeeded();
+    void ShowPage_0();
+    void ShowPage_1();
 };
 
 #endif // OLEDDISPLAY_H

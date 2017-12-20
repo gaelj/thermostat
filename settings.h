@@ -18,6 +18,7 @@
 #define LOOP_DELAY                  10          // min loop period (including loop execution time)
 #define ZWAVE_PERIOD                30000       // ZWave refresh period (ZWave spec requires min 30s)
 #define OLED_SENSOR_PERIOD          10000       // temperature sensor refresh period (millis)
+#define OLED_PAGE_PERIOD            5000        // time during which each paged is displayed before moving on to the next one
 #define LED_BLINK_PERIOD            1500
 #define LED_FLASH_PERIOD            100
 #define LED_ANIMATION_STEP_PERIOD   250

@@ -7,13 +7,15 @@
 
 OLED SCREEN;
 TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
+TimerClass PAGE_TIMER(OLED_PAGE_PERIOD);
 
 OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
-    BoilerClass* boiler, ThermostatClass* thermostat)
-    : SETTINGS(settings), SENSOR(sensor), BOILER(boiler), THERM(thermostat)
+    BoilerClass* boiler, ThermostatClass* thermostat, PID* pid)
+    : SETTINGS(settings), SENSOR(sensor), BOILER(boiler), THERM(thermostat), PIDREG(pid)
 {
     lastBoilerState = 1;
     lastMode = Absent;
+    currentPage = OLED_PAGE_COUNT - 1;
 }
 
 /**
@@ -33,12 +35,30 @@ void OledDisplayClass::Init()
 */
 void OledDisplayClass::DrawDisplay()
 {
-    // clear screen
-    SCREEN.clrscr();
-    delay(5);
+    bool timerElapsed = false;
+    if (PAGE_TIMER.IsElapsed()) {
+        PAGE_TIMER.Start();
+        currentPage = (currentPage + 1) % OLED_PAGE_COUNT;
+        timerElapsed = true;
+    }
 
+    if (timerElapsed) {
+        DisplayRedrawNeeded();
+        // clear screen
+        SCREEN.clrscr();
+        delay(5);
+        SCREEN.setFont(zuno_font_numbers16);
+
+        switch (currentPage) {
+            case 0: ShowPage_0(); break;
+            case 1: ShowPage_1(); break;
+        }
+    }
+}
+
+void OledDisplayClass::ShowPage_0()
+{
     // temperatures
-    SCREEN.setFont(zuno_font_numbers16);
     float values[3];
     values[0] = SENSOR->GetTemperature();
     values[1] = THERM->ExteriorTemperature;
@@ -75,6 +95,20 @@ void OledDisplayClass::DrawDisplay()
     if (BOILER->GetBoilerState()) {
         SCREEN.gotoXY(80, 4);
         SCREEN.writeData(flame_data);
+    }
+}
+
+void OledDisplayClass::ShowPage_1()
+{
+    // PID values
+    float values[3];
+    values[0] = PIDREG->lastInput;
+    values[1] = PIDREG->lastOutput;
+    values[2] = PIDREG->outputSum;
+
+    for (byte i = 0; i < 3; i++) {
+        SCREEN.gotoXY(13, 3 * i);
+        SCREEN.fixPrint((long)(10 * values[i]), 1);
     }
 }
 
