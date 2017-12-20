@@ -17,11 +17,12 @@
 #define DS18B20_MAX_SENSOR 1
 #endif
 
-class SensorClass {
+class SensorClass
+{
 public:
     SensorClass();
     float GetTemperature();
-    float GetHumidity();
+    //float GetHumidity();
     void ReadSensor();
     word Encode(const float temp);
 

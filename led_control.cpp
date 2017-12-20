@@ -1,8 +1,14 @@
 #include "led_control.h"
 
+#include "pinout.h"
+#include "led.h"
+#include "timer.h"
+#include "thermostat_mode.h"
+
 LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
 LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
 LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
+
 TimerClass BLINK_TIMER(1500);
 TimerClass FLASH_TIMER(100);
 TimerClass ANIMATION_TIMER(250);
@@ -12,10 +18,8 @@ LedControlClass::LedControlClass(SensorClass* sensor, BoilerClass* boiler, Therm
     SENSOR(sensor), BOILER(boiler), THERM(thermostat)
 {
     ledBlinkState = false;
-    ledColor = COLOR_BLACK;
-    ledColor0 = COLOR_BLACK;
-    ledColor1 = COLOR_BLACK;
-    ledColor2 = COLOR_BLACK;
+    for (byte i = 0; i < LED_COUNT; i++)
+        ledColors[i] = COLOR_BLACK;
     flashColor = COLOR_BLACK;
     flashCounter = 0;
     animationDirection = 0;
@@ -58,16 +62,11 @@ byte LedControlClass::FlashDequeue()
     return color;
 }
 
-void LedControlClass::DisplayColorAll(byte color0, byte color1, byte color2)
+void LedControlClass::DisplayColorAll()
 {
-    if (!power) {
-        color0 = COLOR_BLACK;
-        color1 = COLOR_BLACK;
-        color2 = COLOR_BLACK;
-    }
-    LED0.DisplayColor(color0);
-    LED1.DisplayColor(color1);
-    LED2.DisplayColor(color2);
+    LED0.DisplayColor(power ? ledColors[0] : COLOR_BLACK);
+    LED1.DisplayColor(power ? ledColors[1] : COLOR_BLACK);
+    LED2.DisplayColor(power ? ledColors[2] : COLOR_BLACK);
 }
 
 void LedControlClass::SetFlash(byte color)
@@ -134,6 +133,7 @@ void LedControlClass::SetAnimationState()
 
 void LedControlClass::DrawAll()
 {
+    byte ledColor = COLOR_BLACK;
     // Toggle boiler blink
     if (BLINK_TIMER.IsActive && BLINK_TIMER.IsElapsed()) {
         ledBlinkState = !ledBlinkState;
@@ -168,26 +168,21 @@ void LedControlClass::DrawAll()
     }
 
     // Draw animations
-    ledColor0 = ledColor;
-    ledColor1 = ledColor;
-    ledColor2 = ledColor;
+    for (byte i = 0; i < LED_COUNT; i++)
+        ledColors[i] = ledColor;
+
     if (animationDirection != 0) {
         if (ANIMATION_TIMER.IsElapsed()) {
             ANIMATION_TIMER.Start();
             animationIndex += animationDirection;
             if (animationIndex < 0)
                 animationIndex = LED_COUNT;
-            if (animationIndex >= LED_COUNT + 1)
+            if (animationIndex > LED_COUNT)
                 animationIndex = 0;
         }
-        switch (animationIndex) {
-            case 1: ledColor0 = COLOR_BLACK; break;
-            case 2: ledColor1 = COLOR_BLACK; break;
-            case 3: ledColor2 = COLOR_BLACK; break;
-            case 0: // no break
-            default: break;
-        }
+        if (animationIndex > 0)
+            ledColors[animationIndex - 1] = COLOR_BLACK;
     }
 
-    DisplayColorAll(ledColor0, ledColor1, ledColor2);
+    DisplayColorAll();
 }

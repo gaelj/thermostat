@@ -1,21 +1,20 @@
 #include "led.h"
 
-LedClass::LedClass(byte pinR, byte pinG, byte pinB) {
-    PinR = pinR;
-    PinG = pinG;
-    PinB = pinB;
+LedClass::LedClass(byte pinR, byte pinG, byte pinB)
+{
+    pins[0] = pinR;
+    pins[1] = pinG;
+    pins[2] = pinB;
 }
 
-void LedClass::Init() {
-    pinMode(PinR, OUTPUT);
-    pinMode(PinG, OUTPUT);
-    pinMode(PinB, OUTPUT);
-    DisplayColor(COLOR_BLACK);
+void LedClass::Init()
+{
+    for (byte i = 0; i < 3; i++)
+        pinMode(pins[i], OUTPUT);
 }
 
-
-void LedClass::DisplayColor(byte color) {
-    digitalWrite(PinR, bitRead(color, 2));
-    digitalWrite(PinG, bitRead(color, 1));
-    digitalWrite(PinB, bitRead(color, 0));
+void LedClass::DisplayColor(byte color)
+{
+    for (byte i = 0; i < 3; i++)
+        digitalWrite(pins[i], bitRead(color, 2 - i));
 }

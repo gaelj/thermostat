@@ -14,6 +14,10 @@ ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass*
     BoilerClass* boiler, ThermostatModeClass* mode) :
     PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler), MODE(mode) { }
 
+/**
+* @brief Initialization, to be called in the Setup() function
+*
+*/
 void ThermostatClass::Init()
 {
     BOILER->SetBoilerState(false);
@@ -21,7 +25,7 @@ void ThermostatClass::Init()
     LastOutput = 0;
     MODE->CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
-    PIDREG->Create(P_ON_E, REVERSE, 0, 1);
+    PIDREG->Create(0, 1);
     PIDREG->SetMode(AUTOMATIC);
 }
 
@@ -30,7 +34,8 @@ void ThermostatClass::Init()
  *
  * @param value     the desired thermostat mode
  */
-void ThermostatClass::SetMode(ThermostatMode value) {
+void ThermostatClass::SetMode(ThermostatMode value)
+{
     if (MODE->CurrentThermostatMode != value) {
         MODE->CurrentThermostatMode = value;
         WindowStartTime = 0;
@@ -42,7 +47,8 @@ void ThermostatClass::SetMode(ThermostatMode value) {
  *
  * @return ThermostatMode   the desired thermostat mode
  */
-ThermostatMode ThermostatClass::GetMode() {
+ThermostatMode ThermostatClass::GetMode()
+{
     return MODE->CurrentThermostatMode;
 }
 
@@ -51,9 +57,9 @@ ThermostatMode ThermostatClass::GetMode() {
  *
  * @return int      0 if OK, -1 in case of error
  */
-int ThermostatClass::Loop() {
+int ThermostatClass::Loop()
+{
     //SENSOR->ReadSensor();
-
     float temp = SENSOR->GetTemperature();
     float setPoint = SETTINGS->GetSetPoint(MODE->CurrentThermostatMode);
 
@@ -80,7 +86,8 @@ int ThermostatClass::Loop() {
  *
  * @return byte
  */
-bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const float temp, const float setPoint) {
+bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const float temp, const float setPoint)
+{
     const unsigned long now = millis();
     const bool state = ((now - WindowStartTime) < (output * SETTINGS->TheSettings->SampleTime))
         && (temp < setPoint);

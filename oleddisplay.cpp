@@ -9,8 +9,7 @@ TimerClass SENSOR_TIMER(10000);
 
 OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
     BoilerClass* boiler, ThermostatClass* thermostat)
-    : SETTINGS(settings), SENSOR(sensor),
-        BOILER(boiler), THERM(thermostat)
+    : SETTINGS(settings), SENSOR(sensor), BOILER(boiler), THERM(thermostat)
 {
     lastBoilerState = 1;
     lastMode = Absent;
@@ -37,27 +36,19 @@ void OledDisplayClass::DrawDisplay()
     SCREEN.clrscr();
     delay(5);
 
-    // sensor temperature
+    // temperatures
     SCREEN.setFont(zuno_font_numbers16);
-    SCREEN.gotoXY(13, 0);
-    SCREEN.fixPrint((long)(10 * SENSOR->GetTemperature()), 1);
+    float values[3];
+    values[0] = SENSOR->GetTemperature();
+    values[1] = THERM->ExteriorTemperature;
+    values[2] = SETTINGS->GetSetPoint(THERM->GetMode());
 
-    // exterior temperature
-    SCREEN.gotoXY(13, 3);
-    SCREEN.fixPrint((long)(10 * THERM->ExteriorTemperature), 1);
-
-    // setpoint temperature
-    SCREEN.gotoXY(13, 6);
-    SCREEN.fixPrint((long)(10 * SETTINGS->GetSetPoint(THERM->GetMode())), 1);
-
-    // boiler state
-    if (BOILER->GetBoilerState()) {
-        SCREEN.gotoXY(80, 4);
-        SCREEN.writeData(flame_data);
+    for (byte i = 0; i < 3; i++) {
+        SCREEN.gotoXY(13, 3 * i);
+        SCREEN.fixPrint((long)(10 * values[i]), 1);
     }
 
     // thermostat mode
-    SCREEN.gotoXY(80, 0);
     char* data = absent_data;
     switch (THERM->GetMode()) {
         case Frost:
@@ -76,7 +67,14 @@ void OledDisplayClass::DrawDisplay()
             data = hot_data;
             break;
     }
+    SCREEN.gotoXY(80, 0);
     SCREEN.writeData(data);
+
+    // boiler state
+    if (BOILER->GetBoilerState()) {
+        SCREEN.gotoXY(80, 4);
+        SCREEN.writeData(flame_data);
+    }
 }
 
 void OledDisplayClass::SetPower(bool value)
@@ -118,4 +116,3 @@ bool OledDisplayClass::DisplayRedrawNeeded()
     }
     return drawDisplay;
 }
-

@@ -50,10 +50,12 @@ float SensorClass::GetTemperature()
  * 
  * @return float   the room humidity
  */
+/*
 float SensorClass::GetHumidity()
 {
     return realHum;
 }
+*/
 #endif
 
 
@@ -99,11 +101,12 @@ float SensorClass::GetTemperature()
  * 
  * @return float   the room humidity
  */
+/*
 float SensorClass::GetHumidity()
 {
     return 0;
 }
-
+*/
 #endif
 
 /**

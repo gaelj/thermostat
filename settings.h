@@ -8,11 +8,11 @@
 #define E2P_VERSION             2 // change this value to apply default settings on first boot after flash
 #define E2P_START_ADDRESS       1
 
-#define THERMOSTAT_MIN 5.0        // minimum thermostat setting
-#define THERMOSTAT_MAX 25.0       // maximum thermostat setting
-#define THERMOSTAT_DEFAULT 18.0   // default thermostat setting
+#define THERMOSTAT_MIN          5.0        // minimum thermostat setting
+#define THERMOSTAT_MAX          25.0       // maximum thermostat setting
+#define THERMOSTAT_DEFAULT      18.0   // default thermostat setting
 
-#define BOILER_MIN_TIME      1 * 60000 // 3mn min time between boiler state changes
+#define BOILER_MIN_TIME         1 * 60000 // 3mn min time between boiler state changes
 
 
 /**

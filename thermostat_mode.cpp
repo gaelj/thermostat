@@ -4,7 +4,8 @@
 * @brief Constructor
 *
 */
-ThermostatModeClass::ThermostatModeClass() {
+ThermostatModeClass::ThermostatModeClass()
+{
     CurrentThermostatMode = Frost;
 }
 
@@ -12,7 +13,8 @@ ThermostatModeClass::ThermostatModeClass() {
 * @brief Convert a thermostat mode to byte value for Zwave slider report
 *
 */
-byte ThermostatModeClass::Encode(const ThermostatMode mode) {
+byte ThermostatModeClass::Encode(const ThermostatMode mode)
+{
     return (mode + 1) * 10;
 }
 
@@ -20,6 +22,7 @@ byte ThermostatModeClass::Encode(const ThermostatMode mode) {
 * @brief Convert a byte value to thermostat mode for Zwave slider control
 *
 */
-ThermostatMode ThermostatModeClass::Decode(byte code) {
+ThermostatMode ThermostatModeClass::Decode(byte code)
+{
     return ThermostatMode((code / 10) - 1);
 }

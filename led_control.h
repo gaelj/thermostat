@@ -2,10 +2,6 @@
 #define LED_CONTROL_H
 
 #include <Arduino.h>
-#include "pinout.h"
-#include "led.h"
-#include "timer.h"
-#include "thermostat_mode.h"
 #include "sensor.h"
 #include "boiler.h"
 #include "thermo_control.h"
@@ -35,17 +31,14 @@ private:
     BoilerClass* BOILER;
     ThermostatClass* THERM;
     bool ledBlinkState;
-    byte ledColor;
-    byte ledColor0;
-    byte ledColor1;
-    byte ledColor2;
+    byte ledColors[LED_COUNT];
     byte flashColor;
     byte flashCounter;
     byte flashQueue[FLASH_QUEUE_LEN];
     int animationDirection;
     int animationIndex;
     float lastTemp;
-    void DisplayColorAll(byte color0, byte color1, byte color2);
+    void DisplayColorAll();
     void StartAnimation(int direction, int period);
     void FlashEnqueue(byte color);
     byte FlashDequeue();

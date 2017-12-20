@@ -48,6 +48,5 @@ void ButtonControlClass::HandlePressedButtons()
         int newMode = ((int)THERM->GetMode() + change) % THERMOSTAT_MODE_COUNT;
         if (newMode < 0) newMode = THERMOSTAT_MODE_COUNT - 1;
         THERM->SetMode(ThermostatMode(newMode));
-        //zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
 }

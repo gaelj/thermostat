@@ -2,7 +2,6 @@
 #define LED_H
 
 #include <Arduino.h>
-#include "pinout.h"
 
 // Colors - RGB format
 #define COLOR_BLACK   0b000
@@ -14,14 +13,15 @@
 #define COLOR_YELLOW  0b110
 #define COLOR_WHITE   0b111
 
-class LedClass {
+class LedClass
+{
 public:
     LedClass(byte pinR, byte pinG, byte pinB);
-    void DisplayColor(byte color);
     void Init();
+    void DisplayColor(byte color);
 
 private:
-    byte PinR, PinG, PinB;
+    byte pins[3];
 };
 
 #endif // LED_H

@@ -11,7 +11,8 @@ SettingsClass::SettingsClass(settings_s* theSettings): TheSettings(theSettings) 
  * @brief Get the selected setpoint temperature
  * 
  */
-float SettingsClass::GetSetPoint(const ThermostatMode mode) {
+float SettingsClass::GetSetPoint(const ThermostatMode mode)
+{
     switch (mode) {
         case Frost: return TheSettings->Setpoint_Frost;
         case Absent: return TheSettings->Setpoint_Absent;
@@ -29,7 +30,8 @@ float SettingsClass::GetSetPoint(const ThermostatMode mode) {
 * @param count
 * @return byte
 */
-byte SettingsClass::GetCrc8(byte* data, byte count) {
+byte SettingsClass::GetCrc8(byte* data, byte count)
+{
     byte result = 0xDF;
     while (count--) {
         result ^= *data;
@@ -44,7 +46,8 @@ byte SettingsClass::GetCrc8(byte* data, byte count) {
 * @return true   The settings are valid
 * @return false  The settings are invalid (wrong CRC or E2P version has changed)
 */
-bool SettingsClass::RestoreSettings() {
+bool SettingsClass::RestoreSettings()
+{
     //Serial.println("Restore stgs");
     EEPROM.get(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
     DumpSettings();
@@ -56,7 +59,8 @@ bool SettingsClass::RestoreSettings() {
 * @brief Apply default values to TheSettings
 *
 */
-void SettingsClass::LoadDefaults() {
+void SettingsClass::LoadDefaults()
+{
     //Serial.println("Reset stgs");
     // Invalid data - reset all
     TheSettings->Version = E2P_VERSION;
@@ -82,10 +86,10 @@ void SettingsClass::LoadDefaults() {
 * @brief Calculate the CRC8 and persist the settings struct to E2P
 *
 */
-bool SettingsClass::PersistSettings() {
+bool SettingsClass::PersistSettings()
+{
     //Serial.print("Persist stgs ");
-    Serial.println((int)sizeof(settings_s));
-
+    //Serial.println((int)sizeof(settings_s));
     TheSettings->crc8 = GetCrc8((byte*)&TheSettings, sizeof(settings_s) - 1);
     EEPROM.put(E2P_START_ADDRESS, &TheSettings, sizeof(settings_s));
     if (!RestoreSettings()) {
@@ -99,7 +103,8 @@ bool SettingsClass::PersistSettings() {
 * @brief Dump all setting values to Serial
 *
 */
-void SettingsClass::DumpSettings() {
+void SettingsClass::DumpSettings()
+{
     //Serial.println("============ Settings:");
     Serial.println(TheSettings->Version);
     Serial.println(TheSettings->Setpoint_Frost);
