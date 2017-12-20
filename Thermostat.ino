@@ -23,9 +23,8 @@
 #include <ZUNO_DS18B20.h>
 #endif
 
-//#include <PID_v1.h>
-//#include <PID_AutoTune_v0.h>
-
+#include "PID_v1.h"
+//#include "PID_AutoTune_v0.h"
 #include "settings.h"
 #include "boiler.h"
 #include "thermo_control.h"
@@ -39,10 +38,12 @@
 
 #define MY_SERIAL Serial
 
+// Custom sensor to retrieve temperature as a word (2 bytes)
 #define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER)   ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
 
 ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
+// Defines the order of the Zwave channels
 #define ZUNO_REPORT_SETPOINT    1
 #define ZUNO_REPORT_EXT_TEMP    2
 #define ZUNO_REPORT_TEMP        3
@@ -174,7 +175,7 @@ void ZSetSetpoint(byte value)
 */
 byte ZGetExteriorTemperature()
 {
-    LEDS.SetFlash(GET_SETPOINT_COLOR);
+    //LEDS.SetFlash(GET_SETPOINT_COLOR);
     return THERM.EncodeTemperature(THERM.ExteriorTemperature);
 }
 
@@ -185,7 +186,7 @@ byte ZGetExteriorTemperature()
 void ZSetExteriorTemperature(byte value)
 {
     if (THERM.ExteriorTemperature != THERM.DecodeTemperature(value)) {
-        LEDS.SetFlash(SET_SETPOINT_COLOR);
+        //LEDS.SetFlash(SET_SETPOINT_COLOR);
         THERM.ExteriorTemperature = THERM.DecodeTemperature(value);
         //zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
@@ -197,7 +198,7 @@ void ZSetExteriorTemperature(byte value)
 */
 word ZGetRealTemperature()
 {
-    LEDS.SetFlash(GET_TEMPRATURE_COLOR);
+    //LEDS.SetFlash(GET_TEMPRATURE_COLOR);
     return SENSOR.Encode(SENSOR.GetTemperature());
 }
 
