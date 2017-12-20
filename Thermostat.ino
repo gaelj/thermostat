@@ -63,7 +63,7 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
-TimerClass ZWAVE_TIMER(30000);
+TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
 ThermostatModeClass MODE;
@@ -140,9 +140,9 @@ void loop()
     }
 
     // Wait if needed
-    const unsigned long loopDelay = 10;
-    if (loopDelay > (millis() - loopStart))
-        delay(loopDelay - (millis() - loopStart));
+    const int waitDelay = LOOP_DELAY - (millis() - loopStart);
+    if (waitDelay > 0)
+        delay(waitDelay);
 }
 
 

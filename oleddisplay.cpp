@@ -1,11 +1,12 @@
 #include "oleddisplay.h"
-#include "icons.h"
-#include "timer.h"
 #include <ZUNO_OLED_I2C.h>
 #include <ZUNO_OLED_FONT_NUMB16.h>
+#include "icons.h"
+#include "timer.h"
+#include "settings.h"
 
 OLED SCREEN;
-TimerClass SENSOR_TIMER(10000);
+TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
 
 OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
     BoilerClass* boiler, ThermostatClass* thermostat)

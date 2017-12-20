@@ -4,22 +4,21 @@
 #include "led.h"
 #include "timer.h"
 #include "thermostat_mode.h"
+#include "settings.h"
 
 LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
 LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
 LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
 
-TimerClass BLINK_TIMER(1500);
-TimerClass FLASH_TIMER(100);
-TimerClass ANIMATION_TIMER(250);
-TimerClass TEMP_CHANGE_TIMER(30000);
+TimerClass BLINK_TIMER(LED_BLINK_PERIOD);
+TimerClass FLASH_TIMER(LED_FLASH_PERIOD);
+TimerClass ANIMATION_TIMER(LED_ANIMATION_STEP_PERIOD);
+TimerClass TEMP_CHANGE_TIMER(LED_ANIMATION_TOTAL_PERIOD);
 
 LedControlClass::LedControlClass(SensorClass* sensor, BoilerClass* boiler, ThermostatClass* thermostat):
     SENSOR(sensor), BOILER(boiler), THERM(thermostat)
 {
     ledBlinkState = false;
-    for (byte i = 0; i < LED_COUNT; i++)
-        ledColors[i] = COLOR_BLACK;
     flashColor = COLOR_BLACK;
     flashCounter = 0;
     animationDirection = 0;
@@ -117,16 +116,13 @@ void LedControlClass::SetAnimationState()
         TEMP_CHANGE_TIMER.Start();
         float delta = SENSOR->GetTemperature() - lastTemp;
         if (delta != 0) {
-            int period = 100 / abs(delta);
-            if (period < 100) period = 100;
-            if (period > 1000) period = 1000;
-            if (delta > 0)
-                StartAnimation(1, period);
-            else if (delta < 0)
-                StartAnimation(-1, period);
+            int period = LED_ANIMATION_MIN_PERIOD / abs(delta);
+            if (period < LED_ANIMATION_MIN_PERIOD) period = LED_ANIMATION_MIN_PERIOD;
+            if (period > LED_ANIMATION_MAX_PERIOD) period = LED_ANIMATION_MAX_PERIOD;
+            StartAnimation(delta > 0 ? 1 : -1, period);
         }
         else
-            StartAnimation(0, 250);
+            StartAnimation(0, LED_ANIMATION_STEP_PERIOD);
         lastTemp = SENSOR->GetTemperature();
     }
 }
@@ -161,7 +157,7 @@ void LedControlClass::DrawAll()
             if (flashCounter > 0)
                 FLASH_TIMER.Start();
         }
-        if (flashCounter == 2)
+        if (flashCounter == FLASHES - 1)
             ledColor = flashColor;
         else
             ledColor = COLOR_BLACK;

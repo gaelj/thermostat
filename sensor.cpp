@@ -19,7 +19,7 @@ SensorClass::SensorClass()
 {
     DhtSensor.begin();
     realTemp = 0;
-    realHum = 0;
+    //realHum = 0;
 }
 
 /**

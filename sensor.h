@@ -28,7 +28,7 @@ public:
 
 protected:
     float realTemp;
-    float realHum;
+    //float realHum;
 };
 
 #endif // SENSOR_H

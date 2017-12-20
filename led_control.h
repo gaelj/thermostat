@@ -6,16 +6,6 @@
 #include "boiler.h"
 #include "thermo_control.h"
 
-#define LED_COUNT       3
-#define FLASHES         3 // 0-1-0
-#define FLASH_QUEUE_LEN 32
-
-#define BOILER_BLINK_COLOR      COLOR_RED
-#define SET_SETPOINT_COLOR      COLOR_BLUE
-#define GET_SETPOINT_COLOR      COLOR_YELLOW
-#define GET_TEMPRATURE_COLOR    COLOR_GREEN
-#define ZUNO_CALLBACK_COLOR     COLOR_WHITE
-
 class LedControlClass {
 public:
     LedControlClass(SensorClass* sensor, BoilerClass* boiler, ThermostatClass* thermostat);

@@ -14,12 +14,12 @@ SettingsClass::SettingsClass(settings_s* theSettings): TheSettings(theSettings) 
 float SettingsClass::GetSetPoint(const ThermostatMode mode)
 {
     switch (mode) {
-        case Frost: return TheSettings->Setpoint_Frost;
+        case Frost:  return TheSettings->Setpoint_Frost;
         case Absent: return TheSettings->Setpoint_Absent;
-        case Night: return TheSettings->Setpoint_Night;
-        case Day: return TheSettings->Setpoint_Day;
-        case Warm: return TheSettings->Setpoint_Warm;
-        default: return TheSettings->Setpoint_Absent;
+        case Night:  return TheSettings->Setpoint_Night;
+        case Day:    return TheSettings->Setpoint_Day;
+        case Warm:   return TheSettings->Setpoint_Warm;
+        default:     return TheSettings->Setpoint_Absent;
     }
 }
 
@@ -64,15 +64,15 @@ void SettingsClass::LoadDefaults()
     //Serial.println("Reset stgs");
     // Invalid data - reset all
     TheSettings->Version = E2P_VERSION;
-    TheSettings->Setpoint_Frost = 5.0;
-    TheSettings->Setpoint_Absent = 14.0;
-    TheSettings->Setpoint_Night = 15.0;
-    TheSettings->Setpoint_Day = 19.0;
-    TheSettings->Setpoint_Warm = 22.0;
-    TheSettings->Kp = 0.5;
-    TheSettings->Ki = 0.0;
-    TheSettings->Kd = 0.0;
-    TheSettings->SampleTime = 10 * 60000;
+    TheSettings->Setpoint_Frost = DEFAULT_Setpoint_Frost;
+    TheSettings->Setpoint_Absent = DEFAULT_Setpoint_Absent;
+    TheSettings->Setpoint_Night = DEFAULT_Setpoint_Night;
+    TheSettings->Setpoint_Day = DEFAULT_Setpoint_Day;
+    TheSettings->Setpoint_Warm = DEFAULT_Setpoint_Warm;
+    TheSettings->Kp = DEFAULT_Kp;
+    TheSettings->Ki = DEFAULT_Ki;
+    TheSettings->Kd = DEFAULT_Kd;
+    TheSettings->SampleTime = DEFAULT_SampleTime;
     /*
     TheSettings->HysteresisRange = 0.5;
     TheSettings->ATuneStep = 50;
