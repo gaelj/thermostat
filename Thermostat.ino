@@ -139,9 +139,8 @@ void loop()
     }
 
     // Wait if needed
-    const int waitDelay = LOOP_DELAY - (millis() - loopStart);
-    if (waitDelay > 0)
-        delay(waitDelay);
+    if (LOOP_DELAY > (millis() - loopStart))
+        delay(LOOP_DELAY - (millis() - loopStart));
 }
 
 
