@@ -6,14 +6,15 @@
 
 #include "boiler.h"
 
+TimerClass BOILER_TIMER(BOILER_MIN_TIME);
+
 /**
  * @brief Constructor. Does required initialisations and turns the boiler off
  * 
  */
 BoilerClass::BoilerClass()
 {
-    lastBoilerChange = 0;
-    CurrentBoilerState = 0;
+    CurrentBoilerState = SWITCH_OFF;
 }
 
 /**
@@ -21,25 +22,11 @@ BoilerClass::BoilerClass()
  * 
  * @param value     the desired state
  */
-void BoilerClass::SetBoilerState(bool value)
+void BoilerClass::SetBoilerState(byte value)
 {
-    if (CurrentBoilerState != value && 
-            (lastBoilerChange == 0 ||
-                ((millis() - lastBoilerChange) >= BOILER_MIN_TIME))) {
+    if (CurrentBoilerState != value && BOILER_TIMER.IsElapsed()) {
         CurrentBoilerState = value;
-        zunoSendToGroupSetValueCommand(CONTROL_GROUP_1, value > 0 ? SWITCH_ON : SWITCH_OFF);
-        lastBoilerChange = millis();
+        zunoSendToGroupSetValueCommand(CONTROL_GROUP_1, value);
+        BOILER_TIMER.Start();
     }
 }
-
-/**
- * @brief Get the current state of the boiler
- * 
- * @return true     the boiler is on
- * @return false    the boiler is off
- */
-/*
-bool BoilerClass::GetBoilerState()
-{
-    return currentBoilerState;
-}*/

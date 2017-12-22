@@ -27,7 +27,7 @@ ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass*
 void ThermostatClass::Init()
 {
     _PID_TIMER.DurationInMillis = SETTINGS->TheSettings->SampleTime;
-    BOILER->SetBoilerState(false);
+    BOILER->SetBoilerState(SWITCH_OFF);
     LastOutput = 0;
     CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
@@ -68,7 +68,7 @@ int ThermostatClass::Loop()
             _BOILER_TIMER.Start();
         }
     }
-    BOILER->SetBoilerState(!_BOILER_TIMER.IsElapsed() && (temp < setPoint));
+    BOILER->SetBoilerState((!_BOILER_TIMER.IsElapsed() && (temp < setPoint)) ? SWITCH_ON : SWITCH_OFF);
 
     return 0;
 }

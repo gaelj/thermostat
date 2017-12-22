@@ -6,6 +6,7 @@
 #include <ZUNO_channels.h>
 #include <ZUNO_Definitions.h>
 #include "settings.h"
+#include "timer.h"
 
 #define SWITCH_ON           0xFF
 #define SWITCH_OFF          0x00
@@ -16,11 +17,8 @@ class BoilerClass
 {
 public:
     BoilerClass();
-    void SetBoilerState(bool value);
+    void SetBoilerState(byte value);
     bool CurrentBoilerState;
-
-private:
-    unsigned long lastBoilerChange;
 };
 
 #endif // BOILER_H

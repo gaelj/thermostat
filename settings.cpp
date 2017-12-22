@@ -74,11 +74,11 @@ void SettingsClass::LoadDefaults()
     _Settings.Kd = DEFAULT_Kd;
     _Settings.SampleTime = DEFAULT_SampleTime;
     /*
-    TheSettings.HysteresisRange = 0.5;
-    TheSettings.ATuneStep = 50;
-    TheSettings.ATuneNoise = 1;
-    TheSettings.ATuneStartValue = 100;
-    TheSettings.ATuneLookBack = 20;
+    _Settings.HysteresisRange = 0.5;
+    _Settings.ATuneStep = 50;
+    _Settings.ATuneNoise = 1;
+    _Settings.ATuneStartValue = 100;
+    _Settings.ATuneLookBack = 20;
     */
 }
 
@@ -116,11 +116,11 @@ void SettingsClass::DumpSettings()
     Serial.println(_Settings.Ki);
     Serial.println(_Settings.Kd);
     /*
-    Serial.println(TheSettings.HysteresisRange);
-    Serial.println(TheSettings.ATuneStep);
-    Serial.println(TheSettings.ATuneNoise);
-    Serial.println(TheSettings.ATuneStartValue);
-    Serial.println(TheSettings.ATuneLookBack);
+    Serial.println(_Settings.HysteresisRange);
+    Serial.println(_Settings.ATuneStep);
+    Serial.println(_Settings.ATuneNoise);
+    Serial.println(_Settings.ATuneStartValue);
+    Serial.println(_Settings.ATuneLookBack);
     */
     Serial.println(_Settings.SampleTime);
     Serial.println(_Settings.crc8);
