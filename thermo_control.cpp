@@ -7,7 +7,7 @@
 #include "thermo_control.h"
 
 TimerClass _PID_TIMER(0);
-TimerClass _BOILER_TIMER(BOILER_MIN_TIME);
+TimerClass _BOILER_ON_TIMER(BOILER_MIN_TIME);
 
  /**
   * @brief Constructor. Turns off the boiler
@@ -16,7 +16,7 @@ TimerClass _BOILER_TIMER(BOILER_MIN_TIME);
 ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler) :
     PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler)
 {
-    BOILER_TIMER = &_BOILER_TIMER;
+    BOILER_TIMER = &_BOILER_ON_TIMER;
     PID_TIMER = &_PID_TIMER;
     CurrentThermostatMode = Absent;
 }
@@ -64,11 +64,11 @@ int ThermostatClass::Loop()
         if (newOutput != -1)
             LastOutput = newOutput;
         if (LastOutput > 0) {
-            _BOILER_TIMER.DurationInMillis = (LastOutput / 1000) * SETTINGS->TheSettings->SampleTime;
-            _BOILER_TIMER.Start();
+            _BOILER_ON_TIMER.DurationInMillis = LastOutput * (float)(SETTINGS->TheSettings->SampleTime / 1000);
+            _BOILER_ON_TIMER.Start();
         }
     }
-    BOILER->SetBoilerState((!_BOILER_TIMER.IsElapsed() && (temp < setPoint)) ? SWITCH_ON : SWITCH_OFF);
+    BOILER->SetBoilerState((!_BOILER_ON_TIMER.IsElapsed() && (temp < setPoint)) ? SWITCH_ON : SWITCH_OFF);
 
     return 0;
 }

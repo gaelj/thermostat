@@ -6,7 +6,7 @@
 
 #include "boiler.h"
 
-TimerClass BOILER_TIMER(BOILER_MIN_TIME);
+TimerClass SAFETY_TIMER(BOILER_MIN_TIME);
 
 /**
  * @brief Constructor. Does required initialisations and turns the boiler off
@@ -24,9 +24,9 @@ BoilerClass::BoilerClass()
  */
 void BoilerClass::SetBoilerState(byte value)
 {
-    if (CurrentBoilerState != value && BOILER_TIMER.IsElapsed()) {
+    if (CurrentBoilerState != value && SAFETY_TIMER.IsElapsed()) {
         CurrentBoilerState = value;
         zunoSendToGroupSetValueCommand(CONTROL_GROUP_1, value);
-        BOILER_TIMER.Start();
+        SAFETY_TIMER.Start();
     }
 }

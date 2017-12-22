@@ -17,6 +17,4 @@ enum ThermostatMode {
     Warm
 };
 
-#define THERMOSTAT_MODE_COUNT 5
-
 #endif // ENUMERATIONS_H
