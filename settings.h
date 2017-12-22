@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
-#include "thermostat_mode.h"
 #include "led.h"
+#include "enumerations.h"
 
 #define E2P_VERSION                 2           // change this value to apply default settings on first boot after flash
 #define E2P_START_ADDRESS           1

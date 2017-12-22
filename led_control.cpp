@@ -3,7 +3,7 @@
 #include "pinout.h"
 #include "led.h"
 #include "timer.h"
-#include "thermostat_mode.h"
+#include "zwave_encoding.h"
 #include "settings.h"
 
 LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);

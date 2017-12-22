@@ -26,15 +26,16 @@
 #include "PID_v1.h"
 //#include "PID_AutoTune_v0.h"
 #include "settings.h"
+#include "enumerations.h"
 #include "boiler.h"
 #include "thermo_control.h"
-#include "thermostat_mode.h"
+#include "zwave_encoding.h"
 #include "led.h"
 #include "led_control.h"
 #include "timer.h"
 #include "button.h"
 #include "button_control.h"
-#include "oleddisplay.h"
+#include "oled_display.h"
 
 #define MY_SERIAL Serial
 
@@ -68,7 +69,6 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
 settings_s TheSettings;
 SettingsClass SETTINGS(&TheSettings);
-ThermostatModeClass MODE;
 SensorClass SENSOR;
 BoilerClass BOILER;
 
@@ -78,7 +78,7 @@ PID_ATune atune;
 AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
-ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER, &MODE);
+ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER);
 OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
 ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
@@ -154,7 +154,7 @@ void loop()
 byte ZGetSetpoint()
 {
     LEDS.SetFlash(GET_SETPOINT_COLOR);
-    return MODE.Encode(THERM.GetMode());
+    return EncodeMode(THERM.GetMode());
 }
 
 /**
@@ -163,9 +163,9 @@ byte ZGetSetpoint()
 */
 void ZSetSetpoint(byte value)
 {
-    if (THERM.GetMode() != MODE.Decode(value)) {
+    if (THERM.GetMode() != DecodeMode(value)) {
         LEDS.SetFlash(SET_SETPOINT_COLOR);
-        THERM.SetMode(MODE.Decode(value));
+        THERM.SetMode(DecodeMode(value));
         //zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
 }
@@ -177,7 +177,7 @@ void ZSetSetpoint(byte value)
 byte ZGetExteriorTemperature()
 {
     //LEDS.SetFlash(GET_SETPOINT_COLOR);
-    return THERM.EncodeTemperature(THERM.ExteriorTemperature);
+    return EncodeExteriorTemperature(THERM.ExteriorTemperature);
 }
 
 /**
@@ -186,9 +186,9 @@ byte ZGetExteriorTemperature()
 */
 void ZSetExteriorTemperature(byte value)
 {
-    if (THERM.ExteriorTemperature != THERM.DecodeTemperature(value)) {
+    if (THERM.ExteriorTemperature != DecodeExteriorTemperature(value)) {
         //LEDS.SetFlash(SET_SETPOINT_COLOR);
-        THERM.ExteriorTemperature = THERM.DecodeTemperature(value);
+        THERM.ExteriorTemperature = DecodeExteriorTemperature(value);
         //zunoSendReport(ZUNO_REPORT_SETPOINT);
     }
 }
@@ -200,7 +200,7 @@ void ZSetExteriorTemperature(byte value)
 word ZGetRealTemperature()
 {
     //LEDS.SetFlash(GET_TEMPRATURE_COLOR);
-    return SENSOR.Encode(SENSOR.Temperature);
+    return EncodeSensorReading(SENSOR.Temperature);
 }
 
 /**
@@ -209,7 +209,7 @@ word ZGetRealTemperature()
 */
 byte ZGetRealHumidity()
 {
-    return SENSOR.Encode(SENSOR.Humidity);
+    return EncodeSensorReading(SENSOR.Humidity);
 }
 
 /**

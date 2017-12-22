@@ -26,9 +26,11 @@ bool TimerClass::IsElapsed()
     return false;
 }
 
+/*
 float TimerClass::GetProgressPercentage()
 {
     float n = (float)((millis() - StartTime) / 1000);
     float d = (float)(DurationInMillis / 1000);
     return n / d;
 }
+*/

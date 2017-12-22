@@ -7,7 +7,7 @@
  * @param atune 
  * @param settings 
  */
-AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings, ThermostatModeClass* mode):
+AutoPidClass::AutoPidClass(PID* pid, PID_ATune* atune, SettingsClass* settings, ZwaveEncodingClass* mode):
         myPID(pid), aTune(atune), SETTINGS(settings), MODE(mode) {
     ATuneModeRemember = 2;
     tuning = false;    
@@ -71,7 +71,7 @@ void AutoPidClass::AutoTuneHelper(bool start) {
  * 
  */
 void AutoPidClass::SerialPrintInfoString() {
-    Serial.print("s: "); Serial.print(SETTINGS->GetSetPoint(MODE->CurrentThermostatMode)); Serial.print(" ");
+    Serial.print("s: "); Serial.print(SETTINGS->GetSetPoint(CurrentThermostatMode)); Serial.print(" ");
     Serial.print("i: "); Serial.print(Input); Serial.print(" ");
     Serial.print("o: "); Serial.print(Output); Serial.print(" ");
     if (tuning) {
@@ -130,7 +130,7 @@ float AutoPidClass::Loop(float input) {
     }
     else {
         Serial.println("autoPid compute");
-        myPID->Compute(SETTINGS->GetSetPoint(MODE->CurrentThermostatMode));
+        myPID->Compute(SETTINGS->GetSetPoint(CurrentThermostatMode));
     }
     
     SerialPrintInfoString();

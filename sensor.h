@@ -24,7 +24,6 @@ public:
     void ReadSensor();
     float Temperature;
     float Humidity;
-    word Encode(const float temp);
 };
 
 #endif // SENSOR_H

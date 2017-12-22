@@ -8,7 +8,7 @@
 #include "pinout.h"
 #include "thermo_control.h"
 #include "led_control.h"
-#include "oleddisplay.h"
+#include "oled_display.h"
 
 class ButtonControlClass
 {

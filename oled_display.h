@@ -7,7 +7,8 @@
 #include "sensor.h"
 #include "boiler.h"
 #include "thermo_control.h"
-#include "thermostat_mode.h"
+#include "enumerations.h"
+#include "zwave_encoding.h"
 
 #define OLED_PAGE_COUNT     3
 

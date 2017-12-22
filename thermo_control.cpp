@@ -10,9 +10,8 @@
   * @brief Constructor. Turns off the boiler
   *
   */
-ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass* sensor,
-    BoilerClass* boiler, ThermostatModeClass* mode) :
-    PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler), MODE(mode) { }
+ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler) :
+    PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler) { }
 
 /**
 * @brief Initialization, to be called in the Setup() function
@@ -23,7 +22,7 @@ void ThermostatClass::Init()
     BOILER->SetBoilerState(false);
     WindowStartTime = 0;
     LastOutput = 0;
-    MODE->CurrentThermostatMode = Absent;
+    CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
     PIDREG->Create(0, 1000);
     PIDREG->SetMode(AUTOMATIC);
@@ -36,8 +35,8 @@ void ThermostatClass::Init()
  */
 void ThermostatClass::SetMode(ThermostatMode value)
 {
-    if (MODE->CurrentThermostatMode != value) {
-        MODE->CurrentThermostatMode = value;
+    if (CurrentThermostatMode != value) {
+        CurrentThermostatMode = value;
         WindowStartTime = 0;
     }
 }
@@ -49,7 +48,7 @@ void ThermostatClass::SetMode(ThermostatMode value)
  */
 ThermostatMode ThermostatClass::GetMode()
 {
-    return MODE->CurrentThermostatMode;
+    return CurrentThermostatMode;
 }
 
 /**
@@ -61,7 +60,7 @@ int ThermostatClass::Loop()
 {
     //SENSOR->ReadSensor();
     float temp = SENSOR->Temperature;
-    float setPoint = SETTINGS->GetSetPoint(MODE->CurrentThermostatMode);
+    float setPoint = SETTINGS->GetSetPoint(CurrentThermostatMode);
 
     if (WindowStartTime == 0 || ((millis() - WindowStartTime) > SETTINGS->TheSettings->SampleTime)) {
         //time to shift the Relay Window
@@ -107,31 +106,4 @@ bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const floa
     */
 
     return state;
-}
-
-/**
-* @brief Encode a real temperature to a value from 0 to 100
-*
-* @param temp   real temperature (float). Precision of 0.5°C. Must be between -25°C and +24°C (100 values)
-*
-* @return byte ranging from 0 to 100
-*/
-byte ThermostatClass::EncodeTemperature(float temp)
-{
-    int value = round((temp + 25) * 2);
-    if (value < 0) value = 0;
-    if (value > 99) value = 99;
-    return (byte)value;
-}
-
-/**
-* @brief Decode a byte value from 0 to 100 to a real temperature
-*
-* @param encoded   encoded temperature (byte)
-*
-* @return float
-*/
-float ThermostatClass::DecodeTemperature(byte encoded)
-{
-    return (((float)encoded) / 2) - 25;
 }

@@ -67,12 +67,3 @@ void SensorClass::ReadSensor()
     Temperature = ds18b20.getTemperature(DS18B20_ROM_DATA(0));
 }
 #endif
-
-/**
-* @brief Convert a temperature mode to byte value for Zwave report
-*
-*/
-word SensorClass::Encode(const float temp)
-{
-    return (word)(temp * 100);
-}

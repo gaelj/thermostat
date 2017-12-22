@@ -5,6 +5,7 @@
 #include "sensor.h"
 #include "boiler.h"
 #include "thermo_control.h"
+#include "enumerations.h"
 
 class LedControlClass {
 public:
