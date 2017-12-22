@@ -15,6 +15,8 @@ TimerClass FLASH_TIMER(LED_FLASH_PERIOD);
 TimerClass ANIMATION_TIMER(LED_ANIMATION_STEP_PERIOD);
 TimerClass TEMP_CHANGE_TIMER(LED_ANIMATION_TOTAL_PERIOD);
 
+const byte ColorsByMode[THERMOSTAT_MODE_COUNT] = { COLOR_BLUE, COLOR_CYAN, COLOR_MAGENTA, COLOR_GREEN, COLOR_YELLOW };
+
 LedControlClass::LedControlClass(SensorClass* sensor, BoilerClass* boiler, ThermostatClass* thermostat):
     SENSOR(sensor), BOILER(boiler), THERM(thermostat)
 {
@@ -59,13 +61,6 @@ byte LedControlClass::FlashDequeue()
             flashQueue[i] = COLOR_BLACK;
     }
     return color;
-}
-
-void LedControlClass::DisplayColorAll()
-{
-    LED0.DisplayColor(power ? ledColors[0] : COLOR_BLACK);
-    LED1.DisplayColor(power ? ledColors[1] : COLOR_BLACK);
-    LED2.DisplayColor(power ? ledColors[2] : COLOR_BLACK);
 }
 
 void LedControlClass::SetFlash(byte color)
@@ -127,58 +122,70 @@ void LedControlClass::SetAnimationState()
     }
 }
 
+/**
+* @brief Set each LED's color according to implemented behaviours
+*
+*/
 void LedControlClass::DrawAll()
 {
     byte ledColor = COLOR_BLACK;
-    // Toggle boiler blink
-    if (BLINK_TIMER.IsActive && BLINK_TIMER.IsElapsed()) {
-        ledBlinkState = !ledBlinkState;
-        if (ledBlinkState)
-            SetFlash(BOILER_BLINK_COLOR);
-        BLINK_TIMER.Start();
-    }
 
-    // Set base color according to mode
-    switch (THERM->CurrentThermostatMode) {
-        case Frost:  ledColor = COLOR_BLUE; break;
-        case Absent: ledColor = COLOR_CYAN; break;
-        case Night:  ledColor = COLOR_MAGENTA; break;
-        case Day:    ledColor = COLOR_GREEN; break;
-        case Warm:   ledColor = COLOR_YELLOW; break;
-    }
-
-    // Flash LED
-    if (!FLASH_TIMER.IsActive && flashQueueSize > 0) {
-        DoFlash(FlashDequeue());
-    }
-    if (flashCounter > 0) {
-        if (FLASH_TIMER.IsElapsed()) {
-            flashCounter--;
-            if (flashCounter > 0)
-                FLASH_TIMER.Start();
+    if (power) {
+        // Toggle boiler blink
+        if (BLINK_TIMER.IsActive && BLINK_TIMER.IsElapsed()) {
+            ledBlinkState = !ledBlinkState;
+            if (ledBlinkState)
+                SetFlash(BOILER_BLINK_COLOR);
+            BLINK_TIMER.Start();
         }
-        if (flashCounter == FLASHES - 1)
-            ledColor = flashColor;
-        else
-            ledColor = COLOR_BLACK;
-    }
 
-    // Draw animations
-    for (byte i = 0; i < LED_COUNT; i++)
-        ledColors[i] = ledColor;
+        // Set base color according to mode
+        ledColor = ColorsByMode[(int)THERM->CurrentThermostatMode];
 
-    if (animationDirection != 0) {
-        if (ANIMATION_TIMER.IsElapsed()) {
-            ANIMATION_TIMER.Start();
-            animationIndex += animationDirection;
-            if (animationIndex < 0)
-                animationIndex = LED_COUNT;
-            if (animationIndex > LED_COUNT)
-                animationIndex = 0;
+        // Flash LED
+        if (!FLASH_TIMER.IsActive && flashQueueSize > 0) {
+            DoFlash(FlashDequeue());
         }
-        if (animationIndex > 0)
-            ledColors[animationIndex - 1] = COLOR_BLACK;
+        if (flashCounter > 0) {
+            if (FLASH_TIMER.IsElapsed()) {
+                flashCounter--;
+                if (flashCounter > 0)
+                    FLASH_TIMER.Start();
+            }
+            if (flashCounter == FLASHES - 1)
+                ledColor = flashColor;
+            else
+                ledColor = COLOR_BLACK;
+        }
+
+        // Draw animations
+        for (byte i = 0; i < LED_COUNT; i++)
+            ledColors[i] = ledColor;
+
+        if (animationDirection != 0) {
+            if (ANIMATION_TIMER.IsElapsed()) {
+                ANIMATION_TIMER.Start();
+                animationIndex += animationDirection;
+                if (animationIndex < 0)
+                    animationIndex = LED_COUNT;
+                if (animationIndex > LED_COUNT)
+                    animationIndex = 0;
+            }
+            if (animationIndex > 0)
+                ledColors[animationIndex - 1] = COLOR_BLACK;
+        }
     }
 
     DisplayColorAll();
+}
+
+/**
+* @brief Set each LED color according to the values in ledColors[]
+*
+*/
+void LedControlClass::DisplayColorAll()
+{
+    LED0.DisplayColor(ledColors[0]);
+    LED1.DisplayColor(ledColors[1]);
+    LED2.DisplayColor(ledColors[2]);
 }

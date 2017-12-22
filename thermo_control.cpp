@@ -18,6 +18,7 @@ ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass*
 {
     BOILER_TIMER = &_BOILER_TIMER;
     PID_TIMER = &_PID_TIMER;
+    CurrentThermostatMode = Absent;
 }
 
 /**
@@ -29,7 +30,6 @@ void ThermostatClass::Init()
     _PID_TIMER.DurationInMillis = SETTINGS->TheSettings->SampleTime;
     BOILER->SetBoilerState(SWITCH_OFF);
     LastOutput = 0;
-    CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
     PIDREG->Create(0, 1000);
     PIDREG->SetMode(AUTOMATIC);
