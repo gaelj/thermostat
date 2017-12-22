@@ -18,8 +18,8 @@ DHT DhtSensor(PIN_TEMP_SENSOR, DHT22);
 SensorClass::SensorClass()
 {
     DhtSensor.begin();
-    realTemp = 0;
-    //realHum = 0;
+    Temperature = -0.2;
+    Humidity = -0.2;
 }
 
 /**
@@ -29,33 +29,13 @@ SensorClass::SensorClass()
 void SensorClass::ReadSensor()
 {
     const byte force_read = 1;
-    //realHum = DhtSensor.readHumidity(force_read);
     do {
-        realTemp = DhtSensor.readTemperature(force_read);
-    } while (realTemp == -0.1);
+        Temperature = DhtSensor.readTemperature(force_read);
+    } while (Temperature == -0.1);
+    do {
+        Humidity = DhtSensor.readHumidity(force_read);
+    } while (Humidity == -0.1);
 }
-
-/**
- * @brief Get the current room temperature
- * 
- * @return float   the room temperature
- */
-float SensorClass::GetTemperature()
-{
-    return realTemp;
-}
-
-/**
- * @brief Get the current room humidity
- * 
- * @return float   the room humidity
- */
-/*
-float SensorClass::GetHumidity()
-{
-    return realHum;
-}
-*/
 #endif
 
 
@@ -84,29 +64,8 @@ SensorClass::SensorClass()
  */
 void SensorClass::ReadSensor()
 {
-    realTemp = ds18b20.getTemperature(DS18B20_ROM_DATA(0));
+    Temperature = ds18b20.getTemperature(DS18B20_ROM_DATA(0));
 }
-/**
- * @brief Get the current room temperature
- * 
- * @return float   the room temperature
- */
-float SensorClass::GetTemperature()
-{
-    return realTemp;
-}
-
-/**
- * @brief Get the current room humidity
- * 
- * @return float   the room humidity
- */
-/*
-float SensorClass::GetHumidity()
-{
-    return 0;
-}
-*/
 #endif
 
 /**

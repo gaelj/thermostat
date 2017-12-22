@@ -39,7 +39,8 @@
 #define MY_SERIAL Serial
 
 // Custom sensor to retrieve temperature as a word (2 bytes)
-#define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER)   ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
+#define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER) ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
+#define ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(GETTER)    ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_RELATIVE_HUMIDITY, SENSOR_MULTILEVEL_SCALE_PERCENTAGE_VALUE, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
 
 ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
@@ -47,6 +48,7 @@ ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 #define ZUNO_REPORT_SETPOINT    1
 #define ZUNO_REPORT_EXT_TEMP    2
 #define ZUNO_REPORT_TEMP        3
+#define ZUNO_REPORT_HUMIDITY    4
 
 // Zwave channels: 1 channel to get/set the desired temperature,
 //                 1 channel to (get/)set the exterior temperature,
@@ -55,7 +57,7 @@ ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
     , ZUNO_SWITCH_MULTILEVEL(ZGetExteriorTemperature, ZSetExteriorTemperature)
     , ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
-    //, ZUNO_SENSOR_MULTILEVEL_HUMIDITY(RealHumidityGetter)
+    , ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(ZGetRealHumidity)
 );
 
 // Zwave associations: 1 group to set boiler relay on/off
@@ -136,6 +138,7 @@ void loop()
         zunoSendReport(ZUNO_REPORT_SETPOINT);
         zunoSendReport(ZUNO_REPORT_EXT_TEMP);
         zunoSendReport(ZUNO_REPORT_TEMP);
+        zunoSendReport(ZUNO_REPORT_HUMIDITY);
     }
 
     // Wait if needed
@@ -197,17 +200,17 @@ void ZSetExteriorTemperature(byte value)
 word ZGetRealTemperature()
 {
     //LEDS.SetFlash(GET_TEMPRATURE_COLOR);
-    return SENSOR.Encode(SENSOR.GetTemperature());
+    return SENSOR.Encode(SENSOR.Temperature);
 }
 
 /**
 * @brief Zwave Getter for Real Humidity
 *
-*//*
-byte RealHumidityGetter()
+*/
+byte ZGetRealHumidity()
 {
-    return fromFloat(THERM.GetHumidity());
-}*/
+    return SENSOR.Encode(SENSOR.Humidity);
+}
 
 /**
 * @brief Universal handler for all the channels
@@ -229,6 +232,8 @@ void zunoCallback(void)
         case ZUNO_CHANNEL2_SETTER: ZSetExteriorTemperature(callback_data.param.bParam); break;
 
         case ZUNO_CHANNEL3_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
+
+        case ZUNO_CHANNEL4_GETTER: callback_data.param.wParam = ZGetRealHumidity(); break;
         default: break;
     }
 }

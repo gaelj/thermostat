@@ -24,7 +24,7 @@ OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
 */
 void OledDisplayClass::Init()
 {
-    lastTemp = SENSOR->GetTemperature();
+    lastTemp = SENSOR->Temperature;
     SCREEN.begin();
     SCREEN.clrscr();
 }
@@ -65,7 +65,7 @@ void OledDisplayClass::ShowPage_0()
 {
     // temperatures
     float values[3];
-    values[0] = SENSOR->GetTemperature();
+    values[0] = SENSOR->Temperature;
     values[1] = THERM->ExteriorTemperature;
     values[2] = SETTINGS->GetSetPoint(THERM->GetMode());
     ShowNumericValues(values, 3);
@@ -120,10 +120,11 @@ void OledDisplayClass::ShowPage_1()
 void OledDisplayClass::ShowPage_2()
 {
     // PID values
-    float values[2];
+    float values[3];
     values[0] = PIDREG->error;
     values[1] = PIDREG->dInput;
-    ShowNumericValues(values, 2);
+    values[2] = SENSOR->Humidity;
+    ShowNumericValues(values, 3);
 }
 
 /**
@@ -170,8 +171,8 @@ bool OledDisplayClass::DisplayRedrawNeeded()
     if (SENSOR_TIMER.IsElapsed()) {
         SENSOR_TIMER.Start();
         SENSOR->ReadSensor();
-        if (SENSOR->GetTemperature() != lastTemp) {
-            lastTemp = SENSOR->GetTemperature();
+        if (SENSOR->Temperature != lastTemp) {
+            lastTemp = SENSOR->Temperature;
             drawDisplay = true;
         }
     }

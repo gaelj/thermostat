@@ -37,7 +37,7 @@ void LedControlClass::Init()
     LED0.Init();
     LED1.Init();
     LED2.Init();
-    lastTemp = SENSOR->GetTemperature();
+    lastTemp = SENSOR->Temperature;
 }
 
 void LedControlClass::FlashEnqueue(byte color)
@@ -114,7 +114,7 @@ void LedControlClass::SetAnimationState()
 {
     if (TEMP_CHANGE_TIMER.IsElapsed()) {
         TEMP_CHANGE_TIMER.Start();
-        float delta = SENSOR->GetTemperature() - lastTemp;
+        float delta = SENSOR->Temperature - lastTemp;
         if (delta != 0) {
             int period = LED_ANIMATION_MIN_PERIOD / abs(delta);
             if (period < LED_ANIMATION_MIN_PERIOD) period = LED_ANIMATION_MIN_PERIOD;
@@ -123,7 +123,7 @@ void LedControlClass::SetAnimationState()
         }
         else
             StartAnimation(0, LED_ANIMATION_STEP_PERIOD);
-        lastTemp = SENSOR->GetTemperature();
+        lastTemp = SENSOR->Temperature;
     }
 }
 

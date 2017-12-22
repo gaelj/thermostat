@@ -60,7 +60,7 @@ ThermostatMode ThermostatClass::GetMode()
 int ThermostatClass::Loop()
 {
     //SENSOR->ReadSensor();
-    float temp = SENSOR->GetTemperature();
+    float temp = SENSOR->Temperature;
     float setPoint = SETTINGS->GetSetPoint(MODE->CurrentThermostatMode);
 
     if (WindowStartTime == 0 || ((millis() - WindowStartTime) > SETTINGS->TheSettings->SampleTime)) {
