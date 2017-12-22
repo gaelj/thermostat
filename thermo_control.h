@@ -7,6 +7,7 @@
 #include "boiler.h"
 #include "PID_v1.h"
 #include "enumerations.h"
+#include "timer.h"
 
 #define THERMOSTAT_MODE_COUNT 5
 
@@ -18,14 +19,14 @@ public:
     void SetMode(ThermostatMode value);
     float ExteriorTemperature;
     ThermostatMode CurrentThermostatMode;
+    TimerClass* BOILER_TIMER;
+    TimerClass* PID_TIMER;
 
 private:
     SettingsClass* SETTINGS;
     SensorClass* SENSOR;
     BoilerClass* BOILER;
     PID* PIDREG;
-    unsigned long WindowStartTime;
-    bool GetBoilerStateByWindowWidth(float, float, float);
     float LastOutput;
 };
 

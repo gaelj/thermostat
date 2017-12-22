@@ -6,12 +6,19 @@
 
 #include "thermo_control.h"
 
+TimerClass _PID_TIMER(0);
+TimerClass _BOILER_TIMER(BOILER_MIN_TIME);
+
  /**
   * @brief Constructor. Turns off the boiler
   *
   */
 ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass* sensor, BoilerClass* boiler) :
-    PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler) { }
+    PIDREG(pid), SETTINGS(settings), SENSOR(sensor), BOILER(boiler)
+{
+    BOILER_TIMER = &_BOILER_TIMER;
+    PID_TIMER = &_PID_TIMER;
+}
 
 /**
 * @brief Initialization, to be called in the Setup() function
@@ -19,8 +26,8 @@ ThermostatClass::ThermostatClass(PID* pid, SettingsClass* settings, SensorClass*
 */
 void ThermostatClass::Init()
 {
+    _PID_TIMER.DurationInMillis = SETTINGS->TheSettings->SampleTime;
     BOILER->SetBoilerState(false);
-    WindowStartTime = 0;
     LastOutput = 0;
     CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
@@ -37,7 +44,7 @@ void ThermostatClass::SetMode(ThermostatMode value)
 {
     if (CurrentThermostatMode != value) {
         CurrentThermostatMode = value;
-        WindowStartTime = 0;
+        _PID_TIMER.Start();
     }
 }
 
@@ -48,52 +55,20 @@ void ThermostatClass::SetMode(ThermostatMode value)
  */
 int ThermostatClass::Loop()
 {
-    //SENSOR->ReadSensor();
     float temp = SENSOR->Temperature;
     float setPoint = SETTINGS->GetSetPoint(CurrentThermostatMode);
 
-    if (WindowStartTime == 0 || ((millis() - WindowStartTime) > SETTINGS->TheSettings->SampleTime)) {
-        //time to shift the Relay Window
-        //Serial.println("NW");
-
+    if (_PID_TIMER.IsElapsed()) {
+        _PID_TIMER.Start();
         float newOutput = PIDREG->Compute(temp, setPoint);
         if (newOutput != -1)
             LastOutput = newOutput;
-        WindowStartTime = millis();
+        if (LastOutput > 0) {
+            _BOILER_TIMER.DurationInMillis = (LastOutput / 1000) * SETTINGS->TheSettings->SampleTime;
+            _BOILER_TIMER.Start();
+        }
     }
-    // output = AUTOPID->Loop(temp);
-    bool state = GetBoilerStateByWindowWidth(LastOutput / 1000, temp, setPoint);
-    BOILER->SetBoilerState(state);
+    BOILER->SetBoilerState(!_BOILER_TIMER.IsElapsed() && (temp < setPoint));
 
     return 0;
-}
-
-/**
- * @brief Get the current boiler state based on output as PWM value and current time position in the time frame
- *
- * @param output   boiler output [0->1]
- *
- * @return byte
- */
-bool ThermostatClass::GetBoilerStateByWindowWidth(const float output, const float temp, const float setPoint)
-{
-    const unsigned long now = millis();
-    const bool state = ((now - WindowStartTime) < (output * SETTINGS->TheSettings->SampleTime))
-        && (temp < setPoint);
-    /*
-    for (int i = 0; i < 2; i++) {
-        Serial.print("T: ");
-        Serial.print(temp);
-        Serial.print(" SP: ");
-        Serial.print(setPoint);
-        Serial.print(" BSwin: ");
-        Serial.print((now - WindowStartTime) * 100 / SETTINGS->TheSettings->SampleTime);
-        Serial.print("% O: ");
-        Serial.print(output * 100);
-        Serial.print("% S:");
-        Serial.println(state);
-    }
-    */
-
-    return state;
 }
