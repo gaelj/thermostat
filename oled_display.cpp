@@ -6,7 +6,6 @@
 #include "settings.h"
 
 OLED SCREEN;
-TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
 TimerClass PAGE_TIMER(OLED_PAGE_PERIOD);
 
 OledDisplayClass::OledDisplayClass(SettingsClass* settings, SensorClass* sensor,
@@ -42,88 +41,70 @@ void OledDisplayClass::DrawDisplay()
         timerElapsed = true;
     }
 
-    if (timerElapsed) {
-        DisplayRedrawNeeded();
-        // clear screen
+    if (DisplayRedrawNeeded() || timerElapsed) {
         SCREEN.clrscr();
         delay(5);
         SCREEN.setFont(zuno_font_numbers16);
-
-        switch (currentPage) {
-            case 0: ShowPage_0(); break;
-            case 1: ShowPage_1(); break;
-            case 2: ShowPage_2(); break;
-        }
+        DrawPage(currentPage);
     }
 }
 
 /**
-* @brief Draw page 1
+* @brief Draw page by id
 *
 */
-void OledDisplayClass::ShowPage_0()
+void OledDisplayClass::DrawPage(const byte id)
 {
-    // temperatures
     float values[3];
-    values[0] = SENSOR->Temperature;
-    values[1] = THERM->ExteriorTemperature;
-    values[2] = SETTINGS->GetSetPoint(THERM->GetMode());
-    ShowNumericValues(values, 3);
-
-    // thermostat mode icon
     char* data = absent_data;
-    switch (THERM->GetMode()) {
-        case Frost:
-            data = snow_data;
+
+    switch (id) {
+        case 0:
+            // temperatures
+            values[0] = SENSOR->Temperature;
+            values[1] = THERM->ExteriorTemperature;
+            values[2] = SETTINGS->GetSetPoint(THERM->GetMode());
+
+            // thermostat mode icon
+            switch (THERM->GetMode()) {
+                case Frost:
+                    data = snow_data;
+                    break;
+                    //case Absent:
+                    //    data = absent_data;
+                    //    break;
+                case Night:
+                    data = moon_data;
+                    break;
+                case Day:
+                    data = sun_data;
+                    break;
+                case Warm:
+                    data = hot_data;
+                    break;
+            }
+            SCREEN.gotoXY(80, 0);
+            SCREEN.writeData(data);
+
+            // boiler state icon
+            if (BOILER->CurrentBoilerState) {
+                SCREEN.gotoXY(80, 4);
+                SCREEN.writeData(flame_data);
+            }
             break;
-        //case Absent:
-        //    data = absent_data;
-        //    break;
-        case Night:
-            data = moon_data;
+        case 1:
+            // PID values
+            values[0] = PIDREG->lastInput;
+            values[1] = PIDREG->lastOutput;
+            values[2] = PIDREG->outputSum;
             break;
-        case Day:
-            data = sun_data;
-            break;
-        case Warm:
-            data = hot_data;
+        case 2:
+            // PID values
+            values[0] = PIDREG->error;
+            values[1] = PIDREG->dInput;
+            values[2] = SENSOR->Humidity;
             break;
     }
-    SCREEN.gotoXY(80, 0);
-    SCREEN.writeData(data);
-
-    // boiler state icon
-    if (BOILER->GetBoilerState()) {
-        SCREEN.gotoXY(80, 4);
-        SCREEN.writeData(flame_data);
-    }
-}
-
-/**
-* @brief Draw page 2
-*
-*/
-void OledDisplayClass::ShowPage_1()
-{
-    // PID values
-    float values[3];
-    values[0] = PIDREG->lastInput;
-    values[1] = PIDREG->lastOutput;
-    values[2] = PIDREG->outputSum;
-    ShowNumericValues(values, 3);
-}
-
-/**
-* @brief Draw page 3
-*
-*/
-void OledDisplayClass::ShowPage_2()
-{
-    // PID values
-    float values[3];
-    values[0] = PIDREG->error;
-    values[1] = PIDREG->dInput;
-    values[2] = SENSOR->Humidity;
     ShowNumericValues(values, 3);
 }
 
@@ -156,7 +137,7 @@ void OledDisplayClass::SetPower(bool value)
 
 /**
 * @brief Should the display be redrawn, due to source data update. Reads the temperature sensor
-* 
+*
 */
 bool OledDisplayClass::DisplayRedrawNeeded()
 {
@@ -168,18 +149,14 @@ bool OledDisplayClass::DisplayRedrawNeeded()
     }
 
     // Refresh display if temperature has changed
-    if (SENSOR_TIMER.IsElapsed()) {
-        SENSOR_TIMER.Start();
-        SENSOR->ReadSensor();
-        if (SENSOR->Temperature != lastTemp) {
-            lastTemp = SENSOR->Temperature;
-            drawDisplay = true;
-        }
+    if (SENSOR->Temperature != lastTemp) {
+        lastTemp = SENSOR->Temperature;
+        drawDisplay = true;
     }
 
     // Refresh display if boiler state has changed
-    if (BOILER->GetBoilerState() != lastBoilerState) {
-        lastBoilerState = BOILER->GetBoilerState();
+    if (BOILER->CurrentBoilerState != lastBoilerState) {
+        lastBoilerState = BOILER->CurrentBoilerState;
         drawDisplay = true;
     }
     return drawDisplay;

@@ -17,10 +17,10 @@ class BoilerClass
 public:
     BoilerClass();
     void SetBoilerState(bool value);
-    bool GetBoilerState();
+    //bool GetBoilerState();
+    bool CurrentBoilerState;
 
 private:
-    bool currentBoilerState;
     unsigned long lastBoilerChange;
 };
 

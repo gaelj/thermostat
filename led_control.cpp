@@ -82,7 +82,7 @@ void LedControlClass::DoFlash(byte color)
 
 void LedControlClass::SetBlinkingState()
 {
-    bool state = BOILER->GetBoilerState();
+    bool state = BOILER->CurrentBoilerState;
     if (BLINK_TIMER.IsActive != state) {
         BLINK_TIMER.IsActive = state;
         if (BLINK_TIMER.IsActive)

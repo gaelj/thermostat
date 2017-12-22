@@ -76,13 +76,13 @@ struct settings_s {
  */
 class SettingsClass {
 public:
-    SettingsClass(settings_s* theSettings);
+    SettingsClass();
     bool RestoreSettings();
     bool PersistSettings();
     void LoadDefaults();
     void DumpSettings();
-    settings_s* TheSettings;
     float GetSetPoint(const ThermostatMode mode);
+    settings_s* TheSettings;
 
 private:
     byte GetCrc8(byte* data, byte count);

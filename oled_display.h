@@ -33,9 +33,7 @@ private:
     byte currentPage;
     bool DisplayRedrawNeeded();
     void ShowNumericValues(float* values, int count);
-    void ShowPage_0();
-    void ShowPage_1();
-    void ShowPage_2();
+    void DrawPage(const byte id);
 };
 
 #endif // OLEDDISPLAY_H

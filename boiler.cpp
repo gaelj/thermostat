@@ -13,7 +13,7 @@
 BoilerClass::BoilerClass()
 {
     lastBoilerChange = 0;
-    currentBoilerState = 0;
+    CurrentBoilerState = 0;
 }
 
 /**
@@ -23,10 +23,10 @@ BoilerClass::BoilerClass()
  */
 void BoilerClass::SetBoilerState(bool value)
 {
-    if (currentBoilerState != value && 
+    if (CurrentBoilerState != value && 
             (lastBoilerChange == 0 ||
                 ((millis() - lastBoilerChange) >= BOILER_MIN_TIME))) {
-        currentBoilerState = value;
+        CurrentBoilerState = value;
         zunoSendToGroupSetValueCommand(CONTROL_GROUP_1, value > 0 ? SWITCH_ON : SWITCH_OFF);
         lastBoilerChange = millis();
     }
@@ -38,7 +38,8 @@ void BoilerClass::SetBoilerState(bool value)
  * @return true     the boiler is on
  * @return false    the boiler is off
  */
+/*
 bool BoilerClass::GetBoilerState()
 {
     return currentBoilerState;
-}
+}*/

@@ -67,8 +67,8 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
 TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
-settings_s TheSettings;
-SettingsClass SETTINGS(&TheSettings);
+TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
+SettingsClass SETTINGS;
 SensorClass SENSOR;
 BoilerClass BOILER;
 
@@ -82,7 +82,6 @@ ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER);
 OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
 ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
-
 
 /**
 * @brief Main setup function
@@ -116,11 +115,13 @@ void loop()
 {
     unsigned long loopStart = millis();
 
+    if (SENSOR_TIMER.IsElapsed()) {
+        SENSOR_TIMER.Start();
+        SENSOR.ReadSensor();
+    }
+
     // Handle button presses
     BUTTONS.HandlePressedButtons();
-
-    // Refresh display if required
-    DISPLAY.DrawDisplay();
 
     // Set LED blinking if boiler is on
     LEDS.SetBlinkingState();
@@ -130,6 +131,9 @@ void loop()
 
     // Refresh LED states
     LEDS.DrawAll();
+
+    // Refresh display if required
+    DISPLAY.DrawDisplay();
 
     // Run the thermostat loop
     if (ZWAVE_TIMER.IsElapsed()) {
