@@ -6,9 +6,9 @@
 #include "zwave_encoding.h"
 #include "settings.h"
 
-LedClass LED0(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
-LedClass LED1(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
-LedClass LED2(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
+LedClass LED0;
+LedClass LED1;
+LedClass LED2;
 
 TimerClass BLINK_TIMER(LED_BLINK_PERIOD);
 TimerClass FLASH_TIMER(LED_FLASH_PERIOD);
@@ -36,9 +36,9 @@ void LedControlClass::SetPower(bool value)
 
 void LedControlClass::Init()
 {
-    LED0.Init();
-    LED1.Init();
-    LED2.Init();
+    LED0.Init(PIN_LED_R1, PIN_LED_G1, PIN_LED_B1);
+    LED1.Init(PIN_LED_R2, PIN_LED_G2, PIN_LED_B2);
+    LED2.Init(PIN_LED_R3, PIN_LED_G3, PIN_LED_B3);
     lastTemp = SENSOR->Temperature;
 }
 
@@ -157,34 +157,25 @@ void LedControlClass::DrawAll()
             else
                 ledColor = COLOR_BLACK;
         }
-
-        // Draw animations
-        for (byte i = 0; i < LED_COUNT; i++)
-            ledColors[i] = ledColor;
-
-        if (animationDirection != 0) {
-            if (ANIMATION_TIMER.IsElapsed()) {
-                ANIMATION_TIMER.Start();
-                animationIndex += animationDirection;
-                if (animationIndex < 0)
-                    animationIndex = LED_COUNT;
-                if (animationIndex > LED_COUNT)
-                    animationIndex = 0;
-            }
-            if (animationIndex > 0)
-                ledColors[animationIndex - 1] = COLOR_BLACK;
-        }
     }
 
-    DisplayColorAll();
-}
+    // Draw animations
+    for (byte i = 0; i < LED_COUNT; i++)
+        ledColors[i] = ledColor;
 
-/**
-* @brief Set each LED color according to the values in ledColors[]
-*
-*/
-void LedControlClass::DisplayColorAll()
-{
+    if (animationDirection != 0) {
+        if (ANIMATION_TIMER.IsElapsed()) {
+            ANIMATION_TIMER.Start();
+            animationIndex += animationDirection;
+            if (animationIndex < 0)
+                animationIndex = LED_COUNT;
+            if (animationIndex > LED_COUNT)
+                animationIndex = 0;
+        }
+        if (animationIndex > 0)
+            ledColors[animationIndex - 1] = COLOR_BLACK;
+    }
+
     LED0.DisplayColor(ledColors[0]);
     LED1.DisplayColor(ledColors[1]);
     LED2.DisplayColor(ledColors[2]);

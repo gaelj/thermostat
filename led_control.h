@@ -29,7 +29,6 @@ private:
     int animationDirection;
     int animationIndex;
     float lastTemp;
-    void DisplayColorAll();
     void StartAnimation(int direction, int period);
     void FlashEnqueue(byte color);
     byte FlashDequeue();

@@ -16,8 +16,8 @@
 class LedClass
 {
 public:
-    LedClass(byte pinR, byte pinG, byte pinB);
-    void Init();
+    LedClass();
+    void Init(byte pinR, byte pinG, byte pinB);
     void DisplayColor(byte color);
 
 private:

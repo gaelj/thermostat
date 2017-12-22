@@ -157,7 +157,7 @@ void loop()
 */
 byte ZGetSetpoint()
 {
-    LEDS.SetFlash(GET_SETPOINT_COLOR);
+    LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return EncodeMode(THERM.CurrentThermostatMode);
 }
 

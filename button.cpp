@@ -20,13 +20,11 @@ void ButtonClass::ReadButton()
         ButtonState = reading;
         if (ButtonState == LOW) {
             ButtonHasBeenPressed = true;
-            return;
         }
-        if (ButtonState == HIGH) {
+        else
             ButtonHasBeenReleased = true;
-            return;
-        }
+    } else {
+        ButtonHasBeenPressed = false;
+        ButtonHasBeenReleased = false;
     }
-    ButtonHasBeenPressed = false;
-    ButtonHasBeenReleased = false;
 }
