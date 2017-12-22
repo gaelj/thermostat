@@ -51,8 +51,8 @@ float PID::Compute(const float input, const float mySetpoint)
     //if (timeChange < SETTINGS->TheSettings->SampleTime) return -1;
 
     //Compute all the working error variables
-    float error = mySetpoint - input;
-    float dInput = (input - lastInput);
+    error = mySetpoint - input;
+    dInput = (input - lastInput);
     outputSum += (ki * error);
 
     //Add Proportional on Measurement, if P_ON_M is specified
@@ -83,9 +83,6 @@ float PID::Compute(const float input, const float mySetpoint)
  ******************************************************************************/
 void PID::SetTunings()
 {
-    if (SETTINGS->TheSettings->Kp < 0 || SETTINGS->TheSettings->Ki < 0 || SETTINGS->TheSettings->Kd < 0)
-        return;
-
     float SampleTimeInSec = float(SETTINGS->TheSettings->SampleTime) / 1000;
     kp = SETTINGS->TheSettings->Kp;
     ki = SETTINGS->TheSettings->Ki * SampleTimeInSec;

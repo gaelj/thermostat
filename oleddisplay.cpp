@@ -52,10 +52,15 @@ void OledDisplayClass::DrawDisplay()
         switch (currentPage) {
             case 0: ShowPage_0(); break;
             case 1: ShowPage_1(); break;
+            case 2: ShowPage_2(); break;
         }
     }
 }
 
+/**
+* @brief Draw page 1
+*
+*/
 void OledDisplayClass::ShowPage_0()
 {
     // temperatures
@@ -63,13 +68,9 @@ void OledDisplayClass::ShowPage_0()
     values[0] = SENSOR->GetTemperature();
     values[1] = THERM->ExteriorTemperature;
     values[2] = SETTINGS->GetSetPoint(THERM->GetMode());
+    ShowNumericValues(values, 3);
 
-    for (byte i = 0; i < 3; i++) {
-        SCREEN.gotoXY(13, 3 * i);
-        SCREEN.fixPrint((long)(10 * values[i]), 1);
-    }
-
-    // thermostat mode
+    // thermostat mode icon
     char* data = absent_data;
     switch (THERM->GetMode()) {
         case Frost:
@@ -91,13 +92,17 @@ void OledDisplayClass::ShowPage_0()
     SCREEN.gotoXY(80, 0);
     SCREEN.writeData(data);
 
-    // boiler state
+    // boiler state icon
     if (BOILER->GetBoilerState()) {
         SCREEN.gotoXY(80, 4);
         SCREEN.writeData(flame_data);
     }
 }
 
+/**
+* @brief Draw page 2
+*
+*/
 void OledDisplayClass::ShowPage_1()
 {
     // PID values
@@ -105,13 +110,40 @@ void OledDisplayClass::ShowPage_1()
     values[0] = PIDREG->lastInput;
     values[1] = PIDREG->lastOutput;
     values[2] = PIDREG->outputSum;
+    ShowNumericValues(values, 3);
+}
 
-    for (byte i = 0; i < 3; i++) {
+/**
+* @brief Draw page 3
+*
+*/
+void OledDisplayClass::ShowPage_2()
+{
+    // PID values
+    float values[2];
+    values[0] = PIDREG->error;
+    values[1] = PIDREG->dInput;
+    ShowNumericValues(values, 2);
+}
+
+/**
+* @brief Display a maxmimum of 3 float values in a column
+*
+* @param values Array of float values
+* @param count size of the array
+*/
+void OledDisplayClass::ShowNumericValues(float* values, int count)
+{
+    for (byte i = 0; i < count; i++) {
         SCREEN.gotoXY(13, 3 * i);
         SCREEN.fixPrint((long)(10 * values[i]), 1);
     }
 }
 
+/**
+* @brief Set the OLED display power on or off
+*
+*/
 void OledDisplayClass::SetPower(bool value)
 {
     if (value)

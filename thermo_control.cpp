@@ -25,7 +25,7 @@ void ThermostatClass::Init()
     LastOutput = 0;
     MODE->CurrentThermostatMode = Absent;
     ExteriorTemperature = 10;
-    PIDREG->Create(0, 1);
+    PIDREG->Create(0, 1000);
     PIDREG->SetMode(AUTOMATIC);
 }
 
@@ -73,7 +73,7 @@ int ThermostatClass::Loop()
         WindowStartTime = millis();
     }
     // output = AUTOPID->Loop(temp);
-    bool state = GetBoilerStateByWindowWidth(LastOutput, temp, setPoint);
+    bool state = GetBoilerStateByWindowWidth(LastOutput / 1000, temp, setPoint);
     BOILER->SetBoilerState(state);
 
     return 0;

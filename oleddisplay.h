@@ -9,7 +9,7 @@
 #include "thermo_control.h"
 #include "thermostat_mode.h"
 
-#define OLED_PAGE_COUNT     2
+#define OLED_PAGE_COUNT     3
 
 class OledDisplayClass
 {
@@ -31,8 +31,10 @@ private:
     ThermostatMode lastMode;
     byte currentPage;
     bool DisplayRedrawNeeded();
+    void ShowNumericValues(float* values, int count);
     void ShowPage_0();
     void ShowPage_1();
+    void ShowPage_2();
 };
 
 #endif // OLEDDISPLAY_H

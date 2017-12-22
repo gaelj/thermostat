@@ -17,7 +17,7 @@ public:
     #define P_ON_E      1
 
     #define POn                 P_ON_E
-    #define ControllerDirection REVERSE
+    #define ControllerDirection DIRECT
 
     PID(SettingsClass*);
     void Create(float, float);            // * Constructor. Initial tuning parameters are set here.
@@ -34,7 +34,7 @@ public:
 
     void SetMode(int);                    // * sets PID to either Manual (0) or Auto (non-0)
 
-    float outputSum, lastInput, lastOutput;
+    float outputSum, lastInput, lastOutput, error, dInput;
 
 private:
     SettingsClass* SETTINGS;
