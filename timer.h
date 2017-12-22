@@ -10,9 +10,6 @@ public:
     bool IsElapsed();
     bool IsActive;
     unsigned long DurationInMillis;
-    //float GetProgressPercentage();
-
-private:
     unsigned long StartTime;
 };
 

@@ -10,7 +10,7 @@
 *
 */
 enum ThermostatMode {
-    Frost,
+    Frost = 0,
     Absent,
     Night,
     Day,

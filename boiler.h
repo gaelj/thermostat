@@ -17,7 +17,6 @@ class BoilerClass
 public:
     BoilerClass();
     void SetBoilerState(bool value);
-    //bool GetBoilerState();
     bool CurrentBoilerState;
 
 private:
