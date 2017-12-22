@@ -45,7 +45,7 @@ void ButtonControlClass::HandlePressedButtons()
     }
 
     if (change != 0) {
-        int newMode = ((int)THERM->GetMode() + change) % THERMOSTAT_MODE_COUNT;
+        int newMode = ((int)THERM->CurrentThermostatMode + change) % THERMOSTAT_MODE_COUNT;
         if (newMode < 0) newMode = THERMOSTAT_MODE_COUNT - 1;
         THERM->SetMode(ThermostatMode(newMode));
     }

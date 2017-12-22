@@ -42,16 +42,6 @@ void ThermostatClass::SetMode(ThermostatMode value)
 }
 
 /**
- * @brief Get the desired thermostat mode
- *
- * @return ThermostatMode   the desired thermostat mode
- */
-ThermostatMode ThermostatClass::GetMode()
-{
-    return CurrentThermostatMode;
-}
-
-/**
  * @brief Main loop function
  *
  * @return int      0 if OK, -1 in case of error

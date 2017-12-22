@@ -16,8 +16,8 @@ public:
     void Init();
     int Loop();
     void SetMode(ThermostatMode value);
-    ThermostatMode GetMode();
     float ExteriorTemperature;
+    ThermostatMode CurrentThermostatMode;
 
 private:
     SettingsClass* SETTINGS;
@@ -27,7 +27,6 @@ private:
     unsigned long WindowStartTime;
     bool GetBoilerStateByWindowWidth(float, float, float);
     float LastOutput;
-    ThermostatMode CurrentThermostatMode;
 };
 
 #endif // THERMOSTAT_H

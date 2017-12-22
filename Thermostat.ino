@@ -158,7 +158,7 @@ void loop()
 byte ZGetSetpoint()
 {
     LEDS.SetFlash(GET_SETPOINT_COLOR);
-    return EncodeMode(THERM.GetMode());
+    return EncodeMode(THERM.CurrentThermostatMode);
 }
 
 /**
@@ -167,7 +167,7 @@ byte ZGetSetpoint()
 */
 void ZSetSetpoint(byte value)
 {
-    if (THERM.GetMode() != DecodeMode(value)) {
+    if (THERM.CurrentThermostatMode != DecodeMode(value)) {
         LEDS.SetFlash(SET_SETPOINT_COLOR);
         THERM.SetMode(DecodeMode(value));
         //zunoSendReport(ZUNO_REPORT_SETPOINT);

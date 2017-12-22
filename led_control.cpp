@@ -139,7 +139,7 @@ void LedControlClass::DrawAll()
     }
 
     // Set base color according to mode
-    switch (THERM->GetMode()) {
+    switch (THERM->CurrentThermostatMode) {
         case Frost:  ledColor = COLOR_BLUE; break;
         case Absent: ledColor = COLOR_CYAN; break;
         case Night:  ledColor = COLOR_MAGENTA; break;

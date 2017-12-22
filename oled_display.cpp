@@ -63,10 +63,10 @@ void OledDisplayClass::DrawPage(const byte id)
             // temperatures
             values[0] = SENSOR->Temperature;
             values[1] = THERM->ExteriorTemperature;
-            values[2] = SETTINGS->GetSetPoint(THERM->GetMode());
+            values[2] = SETTINGS->GetSetPoint(THERM->CurrentThermostatMode);
 
             // thermostat mode icon
-            switch (THERM->GetMode()) {
+            switch (THERM->CurrentThermostatMode) {
                 case Frost:
                     data = snow_data;
                     break;
@@ -134,30 +134,23 @@ void OledDisplayClass::SetPower(bool value)
         SCREEN.off();
 }
 
-
 /**
 * @brief Should the display be redrawn, due to source data update. Reads the temperature sensor
 *
 */
 bool OledDisplayClass::DisplayRedrawNeeded()
 {
-    // Refresh display if thermostat mode has changed
-    bool drawDisplay = false;
-    if (THERM->GetMode() != lastMode) {
-        lastMode = THERM->GetMode();
-        drawDisplay = true;
-    }
-
     // Refresh display if temperature has changed
-    if (SENSOR->Temperature != lastTemp) {
-        lastTemp = SENSOR->Temperature;
-        drawDisplay = true;
-    }
-
+    // Refresh display if thermostat mode has changed
     // Refresh display if boiler state has changed
-    if (BOILER->CurrentBoilerState != lastBoilerState) {
+    if (SENSOR->Temperature != lastTemp ||
+        THERM->CurrentThermostatMode != lastMode ||
+        BOILER->CurrentBoilerState != lastBoilerState) {
+
+        lastTemp = SENSOR->Temperature;
+        lastMode = THERM->CurrentThermostatMode;
         lastBoilerState = BOILER->CurrentBoilerState;
-        drawDisplay = true;
+        return true;
     }
-    return drawDisplay;
+    return false;
 }
