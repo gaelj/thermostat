@@ -10,7 +10,7 @@ TimerClass::TimerClass(unsigned long durationInMillis)
 void TimerClass::Start()
 {
     // start from the last timer end timestamp if possible
-    const unsigned long currentDuration = GetCurrentDuration();
+    unsigned long currentDuration = GetCurrentDuration();
     if (currentDuration > DurationInMillis && currentDuration < (DurationInMillis * 2))
         StartTime += DurationInMillis;
     else
@@ -30,7 +30,7 @@ bool TimerClass::IsElapsed()
 
 float TimerClass::GetProgress()
 {
-    const unsigned long currentDuration = GetCurrentDuration();
+    unsigned long currentDuration = GetCurrentDuration();
     float currentDurationSec = currentDuration / 1000;
     float totalDurationSec = DurationInMillis / 1000;
 
