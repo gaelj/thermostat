@@ -1,8 +1,6 @@
 #include "led.h"
 
-LedClass::LedClass()
-{
-}
+LedClass::LedClass() { }
 
 void LedClass::Init(byte pinR, byte pinG, byte pinB)
 {

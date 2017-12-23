@@ -11,6 +11,11 @@ public:
     bool IsActive;
     unsigned long DurationInMillis;
     unsigned long StartTime;
+    float Progress;
+    unsigned long GetCurrentDuration();
+
+private:
+    float GetProgress();
 };
 
 #endif // TIMER_H

@@ -16,6 +16,7 @@ public:
     void SetAnimationState();
     void DrawAll();
     void SetPower(bool value);
+    float lastTemp;
 
 private:
     SensorClass* SENSOR;
@@ -28,7 +29,6 @@ private:
     byte flashQueue[FLASH_QUEUE_LEN];
     int animationDirection;
     int animationIndex;
-    float lastTemp;
     void StartAnimation(int direction, int period);
     void FlashEnqueue(byte color);
     byte FlashDequeue();
