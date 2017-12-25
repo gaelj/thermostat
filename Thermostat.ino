@@ -117,7 +117,7 @@ void loop()
     }
 
     // Handle button presses
-    BUTTONS.HandlePressedButtons();
+    BUTTONS.ReadButtons();
 
     // Set LED blinking if boiler is on
     LEDS.SetBlinkingState();
@@ -128,8 +128,8 @@ void loop()
     // Refresh LED states
     LEDS.DrawAll();
 
-    // Refresh display if required
-    DISPLAY.DrawDisplay(false);
+    // Refresh OLED display
+    DISPLAY.DrawDisplay();
 
     // Run the thermostat loop
     if (ZWAVE_TIMER.IsElapsed()) {
