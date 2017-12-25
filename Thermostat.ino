@@ -25,7 +25,7 @@
 #include <ZUNO_DS18B20.h>
 #endif
 
-//#include "string_builder.h"
+#include "string_builder.h"
 #include "PID_v1.h"
 //#include "PID_AutoTune_v0.h"
 #include "settings.h"
