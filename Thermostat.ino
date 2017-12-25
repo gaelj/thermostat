@@ -7,6 +7,8 @@
 #include "pinout.h"
 #include "sensor.h"
 
+#include <Print.h>
+#include <string.h>
 #include <EEPROM.h>
 #include <Wire.h>
 #include <ZUNO_legacy_channels.h>
@@ -23,6 +25,7 @@
 #include <ZUNO_DS18B20.h>
 #endif
 
+//#include "string_builder.h"
 #include "PID_v1.h"
 //#include "PID_AutoTune_v0.h"
 #include "settings.h"
@@ -79,8 +82,8 @@ AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER);
-OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG);
 LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
+OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG, &LEDS);
 ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
 
 /**
@@ -91,20 +94,13 @@ void setup()
 {
     MY_SERIAL.begin(115200);
     //if (!SETTINGS.RestoreSettings()) {
-    SETTINGS.LoadDefaults();
+    //SETTINGS.LoadDefaults();
     //if (!SETTINGS.PersistSettings())
     //    settingsError = true;
     //}
 
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
-
-    SENSOR.ReadSensor();
-
-    BUTTONS.Init();
-    LEDS.Init();
-    DISPLAY.Init();
-    THERM.Init();
 }
 
 /**
@@ -133,7 +129,7 @@ void loop()
     LEDS.DrawAll();
 
     // Refresh display if required
-    DISPLAY.DrawDisplay();
+    DISPLAY.DrawDisplay(false);
 
     // Run the thermostat loop
     if (ZWAVE_TIMER.IsElapsed()) {
@@ -146,8 +142,8 @@ void loop()
     }
 
     // Wait if needed
-    if (LOOP_DELAY > (millis() - loopStart))
-        delay(LOOP_DELAY - (millis() - loopStart));
+    unsigned long loopTime = millis() - loopStart;
+    delay(LOOP_DELAY > loopTime ? LOOP_DELAY - loopTime : 1);
 }
 
 
