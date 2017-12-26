@@ -69,6 +69,8 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
+static TimerClass BOILER_ON_TIMER(0);
+static TimerClass PID_TIMER(BOILER_MIN_TIME);
 static TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
 static TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
 static SettingsClass SETTINGS;
@@ -81,7 +83,7 @@ static PID_ATune atune;
 static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 static ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
-static ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER);
+static ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER, &BOILER_ON_TIMER, &PID_TIMER);
 static LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
 static OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG, &LEDS);
 static ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
@@ -130,8 +132,10 @@ void loop()
     DISPLAY.DrawDisplay();
 
     // Run the thermostat loop
+    THERM.Loop();
+
+    // Update Zwave values
     if (ZWAVE_TIMER.IsElapsedRestart()) {
-        THERM.Loop();
         zunoSendReport(ZUNO_REPORT_SETPOINT);
         zunoSendReport(ZUNO_REPORT_EXT_TEMP);
         zunoSendReport(ZUNO_REPORT_TEMP);
