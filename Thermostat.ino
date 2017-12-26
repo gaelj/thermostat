@@ -69,22 +69,22 @@ ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint)
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
-TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
-TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
-SettingsClass SETTINGS;
-SensorClass SENSOR;
-BoilerClass BOILER;
+static TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
+static TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
+static SettingsClass SETTINGS;
+static SensorClass SENSOR;
+static BoilerClass BOILER;
 
-PID PIDREG(&SETTINGS);
+static PID PIDREG(&SETTINGS);
 /*
-PID_ATune atune;
-AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
-ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
+static PID_ATune atune;
+static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
+static ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
-ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER);
-LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
-OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG, &LEDS);
-ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
+static ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER);
+static LedControlClass LEDS(&SENSOR, &BOILER, &THERM);
+static OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG, &LEDS);
+static ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY);
 
 /**
 * @brief Main setup function
@@ -111,10 +111,8 @@ void loop()
 {
     unsigned long loopStart = millis();
 
-    if (SENSOR_TIMER.IsElapsed()) {
-        SENSOR_TIMER.Start();
+    if (SENSOR_TIMER.IsElapsedRestart())
         SENSOR.ReadSensor();
-    }
 
     // Handle button presses
     BUTTONS.ReadButtons();
@@ -132,8 +130,7 @@ void loop()
     DISPLAY.DrawDisplay();
 
     // Run the thermostat loop
-    if (ZWAVE_TIMER.IsElapsed()) {
-        ZWAVE_TIMER.Start();
+    if (ZWAVE_TIMER.IsElapsedRestart()) {
         THERM.Loop();
         zunoSendReport(ZUNO_REPORT_SETPOINT);
         zunoSendReport(ZUNO_REPORT_EXT_TEMP);
