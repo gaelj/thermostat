@@ -56,15 +56,25 @@ for fname in AsmFiles:
 
 print 'Sub-function call tree:'
 
-def ReportFunction(Function,Stack,Level,NbrCalls):
+maxStack = 0
+def ReportFunction(Function,Stack,Level,NbrCalls,maxStack):
 	if FunctionStackUsage.get(Function)==None:
 		Stack=Stack+2
-		print '?\t'+str(Stack)+'\t'+('\t'*Level)+Function+' ('+str(NbrCalls)+'x)'
+		if Stack > maxStack:
+			maxStack = Stack
+		stackWidth = int(Stack/5)
+		print '?\t'+str(Stack)+'\t'+'*'*stackWidth+' '*(20-stackWidth)+'\t'+('\t'*Level)+Function+' ('+str(NbrCalls)+'x)'
 	else:
 		Stack=Stack+FunctionStackUsage[Function]
-		print str(FunctionStackUsage[Function])+'\t'+str(Stack)+'\t'+('\t'*Level)+Function+' ('+str(NbrCalls)+'x)'
+		if Stack > maxStack:
+			maxStack = Stack
+		stackWidth = int(Stack/5)
+		print str(FunctionStackUsage[Function])+'\t'+str(Stack)+'\t'+'*'*stackWidth+' '*(20-stackWidth)+'\t'+('\t'*Level)+Function+' ('+str(NbrCalls)+'x)'
 		for SubFunction in list(set(Calls[Function])):
-			ReportFunction(SubFunction,Stack,Level+1,Calls[Function].count(SubFunction))
+			maxStack = ReportFunction(SubFunction,Stack,Level+1,Calls[Function].count(SubFunction),maxStack)
+	return maxStack
 
 for Function in ['setup','loop']:
-	ReportFunction(Function,0,0,1)
+	maxStack = ReportFunction(Function,0,0,1,maxStack)
+
+print("Max stack: %d" % maxStack)
