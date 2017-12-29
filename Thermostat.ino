@@ -72,8 +72,9 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 // Create objects
-static TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
+static TimerClass ZWAVE_TIMER(ZWAVE_LONG_PERIOD);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
+static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
 
 static PID PIDREG;
 /*
@@ -86,11 +87,11 @@ static OledDisplayClass DISPLAY(&PIDREG);
 params_s Prm;
 
 ButtonActions buttonAction;
-
-#define ZWAVE_MSG_COUNT     7
 byte zwaveMessageCounter = 0;
 unsigned long loopStart;
 unsigned long loopTime;
+
+#define ZWAVE_MSG_COUNT     7
 
 /**
 * @brief Main setup function
@@ -131,12 +132,17 @@ void loop()
         DISPLAY.SetPower(Prm.IlluminationPower);
     }
     else if (buttonAction == Button1) {
+        MODE_SET_DELAY_TIMER.Start();
         ThermostatMode newMode = ThermostatMode((byte(Prm.CurrentThermostatMode) + 1) % THERMOSTAT_MODE_COUNT);
         Prm.CurrentThermostatMode = newMode;
-        ReportTXCommandValue(Set_Mode, EncodeMode(Prm.CurrentThermostatMode));
     }
     else if (buttonAction == Button2) {
         DISPLAY.ShowNextPage();
+    }
+
+    // Wait before reporting ZWave, to end only the final selection when "cycling" through modes
+    if (MODE_SET_DELAY_TIMER.IsActive && MODE_SET_DELAY_TIMER.IsElapsed()) {
+        ReportTXCommandValue(Set_Mode, EncodeMode(Prm.CurrentThermostatMode));
     }
 
     // Set LED blinking if boiler is on
@@ -156,29 +162,16 @@ void loop()
         //MY_SERIAL.println("ZWave refresh");
         ReportRXCommandValue(0, 0);
         switch (zwaveMessageCounter) {
-            case 0:
-                ReportTXCommandValue(Get_Mode, 0); // get the mode set in Domoticz
-                break;
-            case 1:
-                ReportTXCommandValue(Get_ExteriorTemperature1, 0);
-                break;
-            case 2:
-                ReportTXCommandValue(Get_ExteriorTemperature2, 0);
-                break;
-            case 3:
-                ReportTXCommandValue(Get_ExteriorHumidity1, 0);
-                break;
-            case 4:
-                ReportTXCommandValue(Get_ExteriorHumidity2, 0);
-                break;
-            case 5:
-                ReportTemperature();
-                break;
-            case 6:
-                ReportHumidity();
-                break;
+            case 0: ReportTXCommandValue(Get_Mode, 0); break;
+            case 1: ReportTXCommandValue(Get_ExteriorTemperature1, 0); break;
+            case 2: ReportTXCommandValue(Get_ExteriorTemperature2, 0); break;
+            case 3: ReportTXCommandValue(Get_ExteriorHumidity1, 0); break;
+            case 4: ReportTXCommandValue(Get_ExteriorHumidity2, 0); break;
+            case 5: ReportTemperature(); break;
+            case 6: ReportHumidity(); break;
         }
         zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
+        ZWAVE_TIMER.DurationInMillis = (zwaveMessageCounter == 0) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
     }
 
     // Run the thermostat loop
