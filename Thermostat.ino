@@ -71,16 +71,9 @@ ZUNO_SETUP_CHANNELS(
 ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
-byte ztxCommand;
-byte ztxValue;
-byte zrxCommand;
-byte zrxValue;
-
 // Create objects
 static TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
-static TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
-static RemoteConfiguratorClass REMOTE;
-static ZwaveCommunicationClass ZWAVE(&ztxCommand, &ztxValue);
+static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 
 static PID PIDREG;
 /*
@@ -89,15 +82,15 @@ static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 static ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
 static ThermostatClass THERM(&PIDREG);
-static LedControlClass LEDS;
 static OledDisplayClass DISPLAY(&PIDREG);
 params_s Prm;
 
 ButtonActions buttonAction;
-bool power;
 
 #define ZWAVE_MSG_COUNT     7
 byte zwaveMessageCounter = 0;
+unsigned long loopStart;
+unsigned long loopTime;
 
 /**
 * @brief Main setup function
@@ -107,6 +100,7 @@ void setup()
 {
     MY_SERIAL.begin(115200);
     Settings_LoadDefaults();
+    Remote_InitParameters();
 
     //if (!SETTINGS.RestoreSettings()) {
     //SETTINGS.LoadDefaults();
@@ -124,65 +118,64 @@ void setup()
 */
 void loop()
 {
-    unsigned long loopStart = millis();
+    loopStart = millis();
 
     if (SENSOR_TIMER.IsElapsedRestart())
         ReadSensor();
 
     // Handle button presses
     buttonAction = ReadButtons();
-    if (buttonAction == Button12 || (!power && buttonAction != NoButtonAction)) {
-        power = !power;
-        LEDS.SetPower(power);
-        DISPLAY.SetPower(power);
+    if (buttonAction == Button12 || (!Prm.IlluminationPower && buttonAction != NoButtonAction)) {
+        Prm.IlluminationPower = !Prm.IlluminationPower;
+        //LEDS.SetPower(Prm.IlluminationPower);
+        DISPLAY.SetPower(Prm.IlluminationPower);
     }
     else if (buttonAction == Button1) {
         ThermostatMode newMode = ThermostatMode((byte(Prm.CurrentThermostatMode) + 1) % THERMOSTAT_MODE_COUNT);
         Prm.CurrentThermostatMode = newMode;
-        ZWAVE.SendCommandValue(Set_Mode, EncodeMode(Prm.CurrentThermostatMode));
+        ReportTXCommandValue(Set_Mode, EncodeMode(Prm.CurrentThermostatMode));
     }
     else if (buttonAction == Button2) {
         DISPLAY.ShowNextPage();
     }
 
     // Set LED blinking if boiler is on
-    LEDS.SetBlinkingState();
+    LedsSetBlinkingState();
 
     // Set LED animation if temperature has changed
-    LEDS.SetAnimationState();
+    LedsSetAnimationState();
 
     // Refresh LED states
-    LEDS.DrawAll();
+    LedsDrawAll();
 
     // Refresh OLED display
     DISPLAY.DrawDisplay();
 
     // Update Zwave values
     if (ZWAVE_TIMER.IsElapsedRestart()) {
-        MY_SERIAL.println("ZWave refresh");
-        zrxCommand = 0;
-        zrxValue = 0;
+        //MY_SERIAL.println("ZWave refresh");
+        ReportRXCommandValue(0, 0);
         switch (zwaveMessageCounter) {
             case 0:
-                ZWAVE.SendCommandValue(Get_Mode, 0); // get the mode set in Domoticz
+                ReportTXCommandValue(Get_Mode, 0); // get the mode set in Domoticz
                 break;
             case 1:
-                ZWAVE.SendCommandValue(Get_ExteriorTemperature1, 0);
+                ReportTXCommandValue(Get_ExteriorTemperature1, 0);
                 break;
             case 2:
-                ZWAVE.SendCommandValue(Get_ExteriorTemperature2, 0);
+                ReportTXCommandValue(Get_ExteriorTemperature2, 0);
                 break;
             case 3:
-                ZWAVE.SendCommandValue(Get_ExteriorHumidity1, 0);
+                ReportTXCommandValue(Get_ExteriorHumidity1, 0);
                 break;
             case 4:
-                ZWAVE.SendCommandValue(Get_ExteriorHumidity2, 0);
+                ReportTXCommandValue(Get_ExteriorHumidity2, 0);
                 break;
             case 5:
-                ZWAVE.ReportTemperature();
+                ReportTemperature();
                 break;
             case 6:
-                ZWAVE.ReportHumidity();
+                ReportHumidity();
                 break;
         }
         zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
@@ -192,7 +185,7 @@ void loop()
     THERM.Loop();
 
     // Wait if needed
-    unsigned long loopTime = millis() - loopStart;
+    loopTime = millis() - loopStart;
     delay(LOOP_DELAY > loopTime ? LOOP_DELAY - loopTime : 1);
 }
 
@@ -202,8 +195,8 @@ void loop()
 */
 byte ZGetZtxCommand()
 {
-    Serial.print("ZTXCommand ");
-    Serial.println(ztxCommand);
+    //MY_SERIAL.print("ZTXCommand ");
+    //MY_SERIAL.println(ztxCommand);
     //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return ztxCommand;
 }
@@ -214,8 +207,8 @@ byte ZGetZtxCommand()
 */
 byte ZGetZtxValue()
 {
-    Serial.print("ZTXValue ");
-    Serial.println(ztxValue);
+    //MY_SERIAL.print("ZTXValue ");
+    //MY_SERIAL.println(ztxValue);
     //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return ztxValue;
 }
@@ -270,10 +263,10 @@ byte ZGetZrxValue()
 */
 void ZSetZrxCommand(byte value)
 {
-    Serial.print("ZRXCommand ");
-    Serial.println(value);
-    REMOTE.SetCommand(Commands(value));
+    //MY_SERIAL.print("ZRXCommand ");
+    //MY_SERIAL.println(value);
     zrxCommand = value;
+    Remote_SetCommand(Commands(zrxCommand));
 }
 
 /**
@@ -282,11 +275,11 @@ void ZSetZrxCommand(byte value)
 */
 void ZSetZrxValue(byte value)
 {
-    Serial.print("ZRXValue ");
-    Serial.println(value);
+    //MY_SERIAL.print("ZRXValue ");
+    //MY_SERIAL.println(value);
     //LEDS.SetFlash(SET_SETPOINT_COLOR);
-    REMOTE.SetValue(value);
     zrxValue = value;
+    Remote_SetValue(zrxValue);
 }
 
 
