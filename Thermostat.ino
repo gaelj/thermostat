@@ -3,6 +3,7 @@
 *
 */
 
+#include "globals.h"
 #include "zwave_communication.h"
 #include "zwave_communication.h"
 #include "button_control.h"
@@ -52,12 +53,12 @@
 
 ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 
-
 // Zwave channels: 1 channel to get/set the command id,
 //                 1 channel to (get/)set the command value,
 //                 1 channel to get the real temperature,
 //                 1 channel to get the real humidity
-ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetZtxCommand, ZSetZtxCommand)
+ZUNO_SETUP_CHANNELS(
+    ZUNO_SWITCH_MULTILEVEL(ZGetZtxCommand, ZSetZtxCommand)
     , ZUNO_SWITCH_MULTILEVEL(ZGetZtxValue, ZSetZtxValue)
     , ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue)
     , ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue)
@@ -76,32 +77,27 @@ byte zrxCommand;
 byte zrxValue;
 
 // Create objects
-static TimerClass BOILER_ON_TIMER(0);
-static TimerClass PID_TIMER(BOILER_MIN_TIME);
-static TimerClass ZWAVE_TIMER1(ZWAVE_PERIOD);
-static TimerClass ZWAVE_TIMER2(ZWAVE_PERIOD);
-static TimerClass ZWAVE_TIMER3(ZWAVE_PERIOD);
-static TimerClass ZWAVE_TIMER4(ZWAVE_PERIOD);
-static TimerClass ZWAVE_TIMER5(ZWAVE_PERIOD);
-static TimerClass ZWAVE_TIMER6(ZWAVE_PERIOD);
-static TimerClass ZWAVE_TIMER7(ZWAVE_PERIOD);
+static TimerClass ZWAVE_TIMER(ZWAVE_PERIOD);
 static TimerClass SENSOR_TIMER(OLED_SENSOR_PERIOD);
-static SettingsClass SETTINGS;
-static SensorClass SENSOR;
-static BoilerClass BOILER;
 static RemoteConfiguratorClass REMOTE;
 static ZwaveCommunicationClass ZWAVE(&ztxCommand, &ztxValue);
 
-static PID PIDREG(&SETTINGS);
+static PID PIDREG;
 /*
 static PID_ATune atune;
 static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 static ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
 */
-static ThermostatClass THERM(&PIDREG, &SETTINGS, &SENSOR, &BOILER, &BOILER_ON_TIMER, &PID_TIMER, &REMOTE, &ZWAVE);
-static LedControlClass LEDS(&SENSOR, &BOILER, &THERM, &REMOTE);
-static OledDisplayClass DISPLAY(&SETTINGS, &SENSOR, &BOILER, &THERM, &PIDREG, &LEDS, &REMOTE);
-static ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY, &REMOTE, &ZWAVE);
+static ThermostatClass THERM(&PIDREG);
+static LedControlClass LEDS;
+static OledDisplayClass DISPLAY(&PIDREG);
+params_s Prm;
+
+ButtonActions buttonAction;
+bool power;
+
+#define ZWAVE_MSG_COUNT     7
+byte zwaveMessageCounter = 0;
 
 /**
 * @brief Main setup function
@@ -110,6 +106,8 @@ static ButtonControlClass BUTTONS(&THERM, &LEDS, &DISPLAY, &REMOTE, &ZWAVE);
 void setup()
 {
     MY_SERIAL.begin(115200);
+    Settings_LoadDefaults();
+
     //if (!SETTINGS.RestoreSettings()) {
     //SETTINGS.LoadDefaults();
     //if (!SETTINGS.PersistSettings())
@@ -118,13 +116,6 @@ void setup()
 
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
-    ZWAVE_TIMER1.Start(0);
-    ZWAVE_TIMER2.Start(2500);
-    ZWAVE_TIMER3.Start(5000);
-    ZWAVE_TIMER4.Start(7500);
-    ZWAVE_TIMER5.Start(10000);
-    ZWAVE_TIMER6.Start(12500);
-    ZWAVE_TIMER7.Start(15000);
 }
 
 /**
@@ -136,10 +127,23 @@ void loop()
     unsigned long loopStart = millis();
 
     if (SENSOR_TIMER.IsElapsedRestart())
-        SENSOR.ReadSensor();
+        ReadSensor();
 
     // Handle button presses
-    BUTTONS.ReadButtons();
+    buttonAction = ReadButtons();
+    if (buttonAction == Button12 || (!power && buttonAction != NoButtonAction)) {
+        power = !power;
+        LEDS.SetPower(power);
+        DISPLAY.SetPower(power);
+    }
+    else if (buttonAction == Button1) {
+        ThermostatMode newMode = ThermostatMode((byte(Prm.CurrentThermostatMode) + 1) % THERMOSTAT_MODE_COUNT);
+        Prm.CurrentThermostatMode = newMode;
+        ZWAVE.SendCommandValue(Set_Mode, EncodeMode(Prm.CurrentThermostatMode));
+    }
+    else if (buttonAction == Button2) {
+        DISPLAY.ShowNextPage();
+    }
 
     // Set LED blinking if boiler is on
     LEDS.SetBlinkingState();
@@ -154,24 +158,35 @@ void loop()
     DISPLAY.DrawDisplay();
 
     // Update Zwave values
-    if (ZWAVE_TIMER1.IsElapsedRestart())
-        ZWAVE.SendCommandValue(Get_Mode, 0); // get the mode set in Domoticz
-
-    if (ZWAVE_TIMER2.IsElapsedRestart())
-        ZWAVE.SendCommandValue(Get_ExteriorTemperature1, 0);
-    if (ZWAVE_TIMER3.IsElapsedRestart())
-        ZWAVE.SendCommandValue(Get_ExteriorTemperature2, 0);
-
-    if (ZWAVE_TIMER4.IsElapsedRestart())
-        ZWAVE.SendCommandValue(Get_ExteriorHumidity1, 0);
-    if (ZWAVE_TIMER5.IsElapsedRestart())
-        ZWAVE.SendCommandValue(Get_ExteriorHumidity2, 0);
-
-    if (ZWAVE_TIMER6.IsElapsedRestart())
-        ZWAVE.ReportTemperature();
-
-    if (ZWAVE_TIMER7.IsElapsedRestart())
-        ZWAVE.ReportHumidity();
+    if (ZWAVE_TIMER.IsElapsedRestart()) {
+        MY_SERIAL.println("ZWave refresh");
+        zrxCommand = 0;
+        zrxValue = 0;
+        switch (zwaveMessageCounter) {
+            case 0:
+                ZWAVE.SendCommandValue(Get_Mode, 0); // get the mode set in Domoticz
+                break;
+            case 1:
+                ZWAVE.SendCommandValue(Get_ExteriorTemperature1, 0);
+                break;
+            case 2:
+                ZWAVE.SendCommandValue(Get_ExteriorTemperature2, 0);
+                break;
+            case 3:
+                ZWAVE.SendCommandValue(Get_ExteriorHumidity1, 0);
+                break;
+            case 4:
+                ZWAVE.SendCommandValue(Get_ExteriorHumidity2, 0);
+                break;
+            case 5:
+                ZWAVE.ReportTemperature();
+                break;
+            case 6:
+                ZWAVE.ReportHumidity();
+                break;
+        }
+        zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
+    }
 
     // Run the thermostat loop
     THERM.Loop();
@@ -187,8 +202,8 @@ void loop()
 */
 byte ZGetZtxCommand()
 {
-    //Serial.print("ZTXCommand ");
-    //Serial.println(ztxCommand);
+    Serial.print("ZTXCommand ");
+    Serial.println(ztxCommand);
     //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return ztxCommand;
 }
@@ -199,8 +214,8 @@ byte ZGetZtxCommand()
 */
 byte ZGetZtxValue()
 {
-    //Serial.print("ZTXValue ");
-    //Serial.println(ztxValue);
+    Serial.print("ZTXValue ");
+    Serial.println(ztxValue);
     //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return ztxValue;
 }
@@ -255,8 +270,8 @@ byte ZGetZrxValue()
 */
 void ZSetZrxCommand(byte value)
 {
-    //Serial.print("ZRXCommand ");
-    //Serial.println(value);
+    Serial.print("ZRXCommand ");
+    Serial.println(value);
     REMOTE.SetCommand(Commands(value));
     zrxCommand = value;
 }
@@ -267,8 +282,8 @@ void ZSetZrxCommand(byte value)
 */
 void ZSetZrxValue(byte value)
 {
-    //Serial.print("ZRXValue ");
-    //Serial.println(value);
+    Serial.print("ZRXValue ");
+    Serial.println(value);
     //LEDS.SetFlash(SET_SETPOINT_COLOR);
     REMOTE.SetValue(value);
     zrxValue = value;
@@ -286,7 +301,7 @@ void ZSetZrxValue(byte value)
 word ZGetRealTemperature()
 {
     //LEDS.SetFlash(GET_TEMPRATURE_COLOR);
-    return EncodeSensorReading(SENSOR.Temperature);
+    return EncodeSensorReading(SensorTemperature);
 }
 
 /**
@@ -295,7 +310,7 @@ word ZGetRealTemperature()
 */
 word ZGetRealHumidity()
 {
-    return EncodeSensorReading(SENSOR.Humidity);
+    return EncodeSensorReading(SensorHumidity);
 }
 
 /**
@@ -322,10 +337,10 @@ void zunoCallback(void)
 
         case ZUNO_CHANNEL4_GETTER: callback_data.param.bParam = ZGetZrxValue(); break;
         case ZUNO_CHANNEL4_SETTER: ZSetZrxValue(callback_data.param.bParam); break;
-        /*
+        
         case ZUNO_CHANNEL5_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
         case ZUNO_CHANNEL6_GETTER: callback_data.param.wParam = ZGetRealHumidity(); break;
-        */
+        
         default: break;
     }
 }
