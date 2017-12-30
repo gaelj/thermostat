@@ -3,6 +3,7 @@
 *
 */
 
+#include "radiator.h"
 #include "globals.h"
 #include "zwave_communication.h"
 #include "zwave_communication.h"
@@ -44,6 +45,7 @@
 #include "oled_display.h"
 #include "ThermostatRemoteConfig.h"
 #include "zwave_communication.h"
+#include "radiator.h"
 
 #define MY_SERIAL Serial
 
@@ -75,15 +77,13 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 static TimerClass ZWAVE_TIMER(ZWAVE_LONG_PERIOD);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
-
 static PID PIDREG;
-/*
-static PID_ATune atune;
-static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
-static ThermostatClass THERM(&SETTINGS, &SENSOR, &BOILER, &HIST, &MODE);
-*/
+// static PID_ATune atune;
+// static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 static ThermostatClass THERM(&PIDREG);
 static OledDisplayClass DISPLAY(&PIDREG);
+
+radiator_s Radiators[6];
 params_s Prm;
 
 ButtonActions buttonAction;
@@ -91,7 +91,7 @@ byte zwaveMessageCounter = 0;
 unsigned long loopStart;
 unsigned long loopTime;
 
-#define ZWAVE_MSG_COUNT     7
+#define ZWAVE_MSG_COUNT     31
 
 /**
 * @brief Main setup function
@@ -160,7 +160,7 @@ void loop()
     // Update Zwave values
     if (ZWAVE_TIMER.IsElapsedRestart()) {
         //MY_SERIAL.println("ZWave refresh");
-        ReportRXCommandValue(0, 0);
+        //ReportRXCommandValue(0, 0);
         switch (zwaveMessageCounter) {
             case 0: ReportTXCommandValue(Get_Mode, 0); break;
             case 1: ReportTXCommandValue(Get_ExteriorTemperature1, 0); break;
@@ -169,6 +169,36 @@ void loop()
             case 4: ReportTXCommandValue(Get_ExteriorHumidity2, 0); break;
             case 5: ReportTemperature(); break;
             case 6: ReportHumidity(); break;
+
+            case 7: ReportTXCommandValue(Get_Radiator0Setpoint1, 0); break;
+            case 8: ReportTXCommandValue(Get_Radiator0Setpoint2, 0); break;
+            case 9: ReportTXCommandValue(Get_Radiator0Temperature1, 0); break;
+            case 10: ReportTXCommandValue(Get_Radiator0Temperature2, 0); break;
+
+            case 11: ReportTXCommandValue(Get_Radiator1Setpoint1, 0); break;
+            case 12: ReportTXCommandValue(Get_Radiator1Setpoint2, 0); break;
+            case 13: ReportTXCommandValue(Get_Radiator1Temperature1, 0); break;
+            case 14: ReportTXCommandValue(Get_Radiator1Temperature2, 0); break;
+
+            case 15: ReportTXCommandValue(Get_Radiator2Setpoint1, 0); break;
+            case 16: ReportTXCommandValue(Get_Radiator2Setpoint2, 0); break;
+            case 17: ReportTXCommandValue(Get_Radiator2Temperature1, 0); break;
+            case 18: ReportTXCommandValue(Get_Radiator2Temperature2, 0); break;
+
+            case 19: ReportTXCommandValue(Get_Radiator3Setpoint1, 0); break;
+            case 20: ReportTXCommandValue(Get_Radiator3Setpoint2, 0); break;
+            case 21: ReportTXCommandValue(Get_Radiator3Temperature1, 0); break;
+            case 22: ReportTXCommandValue(Get_Radiator3Temperature2, 0); break;
+
+            case 23: ReportTXCommandValue(Get_Radiator4Setpoint1, 0); break;
+            case 24: ReportTXCommandValue(Get_Radiator4Setpoint2, 0); break;
+            case 25: ReportTXCommandValue(Get_Radiator4Temperature1, 0); break;
+            case 26: ReportTXCommandValue(Get_Radiator4Temperature2, 0); break;
+
+            case 27: ReportTXCommandValue(Get_Radiator5Setpoint1, 0); break;
+            case 28: ReportTXCommandValue(Get_Radiator5Setpoint2, 0); break;
+            case 29: ReportTXCommandValue(Get_Radiator5Temperature1, 0); break;
+            case 30: ReportTXCommandValue(Get_Radiator5Temperature2, 0); break;
         }
         zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
         ZWAVE_TIMER.DurationInMillis = (zwaveMessageCounter == 0) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
