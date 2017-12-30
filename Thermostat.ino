@@ -75,6 +75,7 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
 static TimerClass ZWAVE_TIMER(ZWAVE_LONG_PERIOD);
+static TimerClass ZWAVE_RX_TIMER(ZWAVE_SHORT_PERIOD - 500);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
 static PID PIDREG;
@@ -90,8 +91,9 @@ ButtonActions buttonAction;
 byte zwaveMessageCounter = 0;
 unsigned long loopStart;
 unsigned long loopTime;
+Commands TXCommand = No_Command;
 
-#define ZWAVE_MSG_COUNT     31
+#define ZWAVE_MSG_COUNT     17
 
 /**
 * @brief Main setup function
@@ -111,6 +113,9 @@ void setup()
 
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
+    ReportTXCommandValue(99, 99);
+    ReportRXCommandValue(99, 99);
+    delay(200);
 }
 
 /**
@@ -120,6 +125,24 @@ void setup()
 void loop()
 {
     loopStart = millis();
+
+    // Process any received command / value ZWave input
+    if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
+        Serial.print("zrxCommand: ");
+        Serial.println(zrxCommand);
+        Serial.print("TXCommand: ");
+        Serial.println(TXCommand);
+        if (Commands(zrxCommand) == TXCommand) {
+            Remote_SetCommand(Commands(zrxCommand));
+            Remote_SetValue(zrxValue);
+        }
+        else {
+            if (zwaveMessageCounter == 0)
+                zwaveMessageCounter = ZWAVE_MSG_COUNT - 1;
+            else
+                zwaveMessageCounter--;
+        }
+    }
 
     if (SENSOR_TIMER.IsElapsedRestart())
         ReadSensor();
@@ -159,49 +182,57 @@ void loop()
 
     // Update Zwave values
     if (ZWAVE_TIMER.IsElapsedRestart()) {
-        //MY_SERIAL.println("ZWave refresh");
-        //ReportRXCommandValue(0, 0);
+        MY_SERIAL.print("ZWave TX: cnt = ");
+        MY_SERIAL.print(zwaveMessageCounter);
+
         switch (zwaveMessageCounter) {
-            case 0: ReportTXCommandValue(Get_Mode, 0); break;
-            case 1: ReportTXCommandValue(Get_ExteriorTemperature1, 0); break;
-            case 2: ReportTXCommandValue(Get_ExteriorTemperature2, 0); break;
-            case 3: ReportTXCommandValue(Get_ExteriorHumidity1, 0); break;
-            case 4: ReportTXCommandValue(Get_ExteriorHumidity2, 0); break;
-            case 5: ReportTemperature(); break;
-            case 6: ReportHumidity(); break;
+            case 0: TXCommand = Get_Mode;
+                    ReportTemperature();
+                    ReportHumidity();
+                    break;
+            case 1: TXCommand = Get_ExteriorTemperature1; break;
+            case 2: TXCommand = Get_ExteriorTemperature2; break;
+            case 3: TXCommand = Get_ExteriorHumidity1; break;
+            case 4: TXCommand = Get_ExteriorHumidity2; break;
 
-            case 7: ReportTXCommandValue(Get_Radiator0Setpoint1, 0); break;
-            case 8: ReportTXCommandValue(Get_Radiator0Setpoint2, 0); break;
-            case 9: ReportTXCommandValue(Get_Radiator0Temperature1, 0); break;
-            case 10: ReportTXCommandValue(Get_Radiator0Temperature2, 0); break;
+            case 5: TXCommand = Get_Radiator0Setpoint1; break;
+            case 6: TXCommand = Get_Radiator0Setpoint2; break;
+            case 7: TXCommand = Get_Radiator0Temperature1; break;
+            case 8: TXCommand = Get_Radiator0Temperature2; break;
 
-            case 11: ReportTXCommandValue(Get_Radiator1Setpoint1, 0); break;
-            case 12: ReportTXCommandValue(Get_Radiator1Setpoint2, 0); break;
-            case 13: ReportTXCommandValue(Get_Radiator1Temperature1, 0); break;
-            case 14: ReportTXCommandValue(Get_Radiator1Temperature2, 0); break;
+            case 9: TXCommand = Get_Radiator1Setpoint1; break;
+            case 10: TXCommand = Get_Radiator1Setpoint2; break;
+            case 11: TXCommand = Get_Radiator1Temperature1; break;
+            case 12: TXCommand = Get_Radiator1Temperature2; break;
 
-            case 15: ReportTXCommandValue(Get_Radiator2Setpoint1, 0); break;
-            case 16: ReportTXCommandValue(Get_Radiator2Setpoint2, 0); break;
-            case 17: ReportTXCommandValue(Get_Radiator2Temperature1, 0); break;
-            case 18: ReportTXCommandValue(Get_Radiator2Temperature2, 0); break;
+            case 13: TXCommand = Get_Radiator2Setpoint1; break;
+            case 14: TXCommand = Get_Radiator2Setpoint2; break;
+            case 15: TXCommand = Get_Radiator2Temperature1; break;
+            case 16: TXCommand = Get_Radiator2Temperature2; break;
+            /*
+            case 17: TXCommand = Get_Radiator3Setpoint1; break;
+            case 18: TXCommand = Get_Radiator3Setpoint2; break;
+            case 19: TXCommand = Get_Radiator3Temperature1; break;
+            case 20: TXCommand = Get_Radiator3Temperature2; break;
 
-            case 19: ReportTXCommandValue(Get_Radiator3Setpoint1, 0); break;
-            case 20: ReportTXCommandValue(Get_Radiator3Setpoint2, 0); break;
-            case 21: ReportTXCommandValue(Get_Radiator3Temperature1, 0); break;
-            case 22: ReportTXCommandValue(Get_Radiator3Temperature2, 0); break;
+            case 21: TXCommand = Get_Radiator4Setpoint1; break;
+            case 22: TXCommand = Get_Radiator4Setpoint2; break;
+            case 23: TXCommand = Get_Radiator4Temperature1; break;
+            case 24: TXCommand = Get_Radiator4Temperature2; break;
 
-            case 23: ReportTXCommandValue(Get_Radiator4Setpoint1, 0); break;
-            case 24: ReportTXCommandValue(Get_Radiator4Setpoint2, 0); break;
-            case 25: ReportTXCommandValue(Get_Radiator4Temperature1, 0); break;
-            case 26: ReportTXCommandValue(Get_Radiator4Temperature2, 0); break;
-
-            case 27: ReportTXCommandValue(Get_Radiator5Setpoint1, 0); break;
-            case 28: ReportTXCommandValue(Get_Radiator5Setpoint2, 0); break;
-            case 29: ReportTXCommandValue(Get_Radiator5Temperature1, 0); break;
-            case 30: ReportTXCommandValue(Get_Radiator5Temperature2, 0); break;
+            case 25: TXCommand = Get_Radiator5Setpoint1; break;
+            case 26: TXCommand = Get_Radiator5Setpoint2; break;
+            case 27: TXCommand = Get_Radiator5Temperature1; break;
+            case 28: TXCommand = Get_Radiator5Temperature2; break;
+            */
         }
+        MY_SERIAL.print(" cmd = ");
+        MY_SERIAL.println(TXCommand);
+        ReportTXCommandValue(TXCommand, 0);
+
         zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
         ZWAVE_TIMER.DurationInMillis = (zwaveMessageCounter == 0) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
+        ZWAVE_RX_TIMER.Start();
     }
 
     // Run the thermostat loop
@@ -212,15 +243,14 @@ void loop()
     delay(LOOP_DELAY > loopTime ? LOOP_DELAY - loopTime : 1);
 }
 
+
+
 /**
 * @brief The PC requests the Zuno TX command
 *
 */
 byte ZGetZtxCommand()
 {
-    //MY_SERIAL.print("ZTXCommand ");
-    //MY_SERIAL.println(ztxCommand);
-    //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return ztxCommand;
 }
 
@@ -230,9 +260,6 @@ byte ZGetZtxCommand()
 */
 byte ZGetZtxValue()
 {
-    //MY_SERIAL.print("ZTXValue ");
-    //MY_SERIAL.println(ztxValue);
-    //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return ztxValue;
 }
 
@@ -256,17 +283,12 @@ void ZSetZtxValue(byte value)
 
 
 
-
-
-
-
 /**
 * @brief The PC requests the Zuno RX command (shouldn't happen)
 *
 */
 byte ZGetZrxCommand()
 {
-    //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     return zrxCommand;
 }
 
@@ -276,7 +298,6 @@ byte ZGetZrxCommand()
 */
 byte ZGetZrxValue()
 {
-    //LEDS.SetFlash(GET_SETPOINT_COLOR);
     return zrxValue;
 }
 
@@ -286,10 +307,7 @@ byte ZGetZrxValue()
 */
 void ZSetZrxCommand(byte value)
 {
-    //MY_SERIAL.print("ZRXCommand ");
-    //MY_SERIAL.println(value);
     zrxCommand = value;
-    Remote_SetCommand(Commands(zrxCommand));
 }
 
 /**
@@ -298,15 +316,8 @@ void ZSetZrxCommand(byte value)
 */
 void ZSetZrxValue(byte value)
 {
-    //MY_SERIAL.print("ZRXValue ");
-    //MY_SERIAL.println(value);
-    //LEDS.SetFlash(SET_SETPOINT_COLOR);
     zrxValue = value;
-    Remote_SetValue(zrxValue);
 }
-
-
-
 
 
 
@@ -316,7 +327,6 @@ void ZSetZrxValue(byte value)
 */
 word ZGetRealTemperature()
 {
-    //LEDS.SetFlash(GET_TEMPRATURE_COLOR);
     return EncodeSensorReading(SensorTemperature);
 }
 
@@ -340,7 +350,6 @@ word ZGetRealHumidity()
 */
 void zunoCallback(void)
 {
-    //LEDS.SetFlash(ZUNO_CALLBACK_COLOR);
     switch (callback_data.type) {
         case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetZtxCommand(); break;
         case ZUNO_CHANNEL1_SETTER: ZSetZtxCommand(callback_data.param.bParam); break;
