@@ -47,7 +47,6 @@
 #include "zwave_communication.h"
 #include "radiator.h"
 
-#define MY_SERIAL Serial
 
 // Custom sensor to retrieve temperature as a word (2 bytes)
 #define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER) ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
@@ -78,11 +77,9 @@ static TimerClass ZWAVE_TIMER(ZWAVE_LONG_PERIOD);
 static TimerClass ZWAVE_RX_TIMER(ZWAVE_SHORT_PERIOD - 500);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
-static PID PIDREG;
+PID PIDREG;
 // static PID_ATune atune;
 // static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
-static ThermostatClass THERM(&PIDREG);
-static OledDisplayClass DISPLAY(&PIDREG);
 
 radiator_s Radiators[6];
 params_s Prm;
@@ -94,6 +91,7 @@ unsigned long loopTime;
 Commands TXCommand = No_Command;
 
 #define ZWAVE_MSG_COUNT     17
+#define MY_SERIAL   Serial
 
 /**
 * @brief Main setup function
@@ -101,9 +99,15 @@ Commands TXCommand = No_Command;
 */
 void setup()
 {
+
+#ifdef LOGGING_ACTIVE
     MY_SERIAL.begin(115200);
+#endif // LOGGING_ACTIVE
+
     Settings_LoadDefaults();
     Remote_InitParameters();
+    OledDisplay_Init();
+    Thermostat_Init();
 
     //if (!SETTINGS.RestoreSettings()) {
     //SETTINGS.LoadDefaults();
@@ -115,7 +119,10 @@ void setup()
     //AUTOPID.SetAutoTune(1);
     ReportTXCommandValue(99, 99);
     ReportRXCommandValue(99, 99);
-    delay(200);
+    delay(500);
+    ReportTXCommandValue(0, 0);
+    ReportRXCommandValue(0, 0);
+    delay(500);
 }
 
 /**
@@ -128,10 +135,13 @@ void loop()
 
     // Process any received command / value ZWave input
     if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
-        Serial.print("zrxCommand: ");
-        Serial.println(zrxCommand);
-        Serial.print("TXCommand: ");
-        Serial.println(TXCommand);
+
+#ifdef LOGGING_ACTIVE
+        MY_SERIAL.print("zrxCommand: ");
+        MY_SERIAL.println(zrxCommand);
+        MY_SERIAL.print("TXCommand: ");
+        MY_SERIAL.println(TXCommand);
+#endif // LOGGING_ACTIVE
         if (Commands(zrxCommand) == TXCommand) {
             Remote_SetCommand(Commands(zrxCommand));
             Remote_SetValue(zrxValue);
@@ -152,7 +162,7 @@ void loop()
     if (buttonAction == Button12 || (!Prm.IlluminationPower && buttonAction != NoButtonAction)) {
         Prm.IlluminationPower = !Prm.IlluminationPower;
         //LEDS.SetPower(Prm.IlluminationPower);
-        DISPLAY.SetPower(Prm.IlluminationPower);
+        OledDisplay_SetPower(Prm.IlluminationPower);
     }
     else if (buttonAction == Button1) {
         MODE_SET_DELAY_TIMER.Start();
@@ -160,7 +170,7 @@ void loop()
         Prm.CurrentThermostatMode = newMode;
     }
     else if (buttonAction == Button2) {
-        DISPLAY.ShowNextPage();
+        OledDisplay_ShowNextPage();
     }
 
     // Wait before reporting ZWave, to end only the final selection when "cycling" through modes
@@ -178,12 +188,14 @@ void loop()
     LedsDrawAll();
 
     // Refresh OLED display
-    DISPLAY.DrawDisplay();
+    OledDisplay_DrawDisplay();
 
     // Update Zwave values
     if (ZWAVE_TIMER.IsElapsedRestart()) {
+#ifdef LOGGING_ACTIVE
         MY_SERIAL.print("ZWave TX: cnt = ");
         MY_SERIAL.print(zwaveMessageCounter);
+#endif // LOGGING_ACTIVE
 
         switch (zwaveMessageCounter) {
             case 0: TXCommand = Get_Mode;
@@ -226,8 +238,10 @@ void loop()
             case 28: TXCommand = Get_Radiator5Temperature2; break;
             */
         }
+#ifdef LOGGING_ACTIVE
         MY_SERIAL.print(" cmd = ");
         MY_SERIAL.println(TXCommand);
+#endif // LOGGING_ACTIVE
         ReportTXCommandValue(TXCommand, 0);
 
         zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
@@ -236,7 +250,7 @@ void loop()
     }
 
     // Run the thermostat loop
-    THERM.Loop();
+    Thermostat_Loop();
 
     // Wait if needed
     loopTime = millis() - loopStart;
