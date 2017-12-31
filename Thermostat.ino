@@ -74,7 +74,7 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 // Create objects
 static TimerClass ZWAVE_TIMER(ZWAVE_LONG_PERIOD);
-static TimerClass ZWAVE_RX_TIMER(ZWAVE_SHORT_PERIOD - 500);
+static TimerClass ZWAVE_RX_TIMER(ZWAVE_SHORT_PERIOD - 100);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
 PID PIDREG;
@@ -88,9 +88,10 @@ ButtonActions buttonAction;
 byte zwaveMessageCounter = 0;
 unsigned long loopStart;
 unsigned long loopTime;
-Commands TXCommand = No_Command;
+int TXCommand = 0;
+bool zwaveTimerElapsed = true;
+byte resetCnt = 0;
 
-#define ZWAVE_MSG_COUNT     17
 #define MY_SERIAL   Serial
 
 /**
@@ -117,12 +118,6 @@ void setup()
 
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
-    ReportTXCommandValue(99, 99);
-    ReportRXCommandValue(99, 99);
-    delay(500);
-    ReportTXCommandValue(0, 0);
-    ReportRXCommandValue(0, 0);
-    delay(500);
 }
 
 /**
@@ -132,27 +127,6 @@ void setup()
 void loop()
 {
     loopStart = millis();
-
-    // Process any received command / value ZWave input
-    if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
-
-#ifdef LOGGING_ACTIVE
-        MY_SERIAL.print("zrxCommand: ");
-        MY_SERIAL.println(zrxCommand);
-        MY_SERIAL.print("TXCommand: ");
-        MY_SERIAL.println(TXCommand);
-#endif // LOGGING_ACTIVE
-        if (Commands(zrxCommand) == TXCommand) {
-            Remote_SetCommand(Commands(zrxCommand));
-            Remote_SetValue(zrxValue);
-        }
-        else {
-            if (zwaveMessageCounter == 0)
-                zwaveMessageCounter = ZWAVE_MSG_COUNT - 1;
-            else
-                zwaveMessageCounter--;
-        }
-    }
 
     if (SENSOR_TIMER.IsElapsedRestart())
         ReadSensor();
@@ -190,63 +164,64 @@ void loop()
     // Refresh OLED display
     OledDisplay_DrawDisplay();
 
+
+    // Process any received command / value ZWave input
+    if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
+
+#ifdef LOGGING_ACTIVE
+        MY_SERIAL.print("RXCmd: ");
+        MY_SERIAL.println(zrxCommand);
+        MY_SERIAL.print("TXCmd: ");
+        MY_SERIAL.println(TXCommand);
+#endif // LOGGING_ACTIVE
+        zwaveTimerElapsed = true;
+        if (zrxCommand == TXCommand) {
+            if (zrxCommand != 0 && zrxCommand != 99) {
+                Remote_SetCommand(Commands(zrxCommand));
+                Remote_SetValue(zrxValue);
+                zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
+            }
+        }
+        else {
+#ifdef LOGGING_ACTIVE
+            MY_SERIAL.println("RST");
+#endif // LOGGING_ACTIVE
+            int rstId = 0;
+            resetCnt++;
+            if (resetCnt > 1) {
+                rstId = 99;
+                resetCnt = 0;
+            }
+            //ReportRXCommandValue(rstId, rstId);
+            ReportTXCommandValue(rstId, rstId);
+            TXCommand = rstId;
+            ZWAVE_RX_TIMER.Start();
+            zwaveTimerElapsed = false;
+        }
+    }
+
     // Update Zwave values
-    if (ZWAVE_TIMER.IsElapsedRestart()) {
+    if (zwaveTimerElapsed) {
 #ifdef LOGGING_ACTIVE
         MY_SERIAL.print("ZWave TX: cnt = ");
         MY_SERIAL.print(zwaveMessageCounter);
 #endif // LOGGING_ACTIVE
 
-        switch (zwaveMessageCounter) {
-            case 0: TXCommand = Get_Mode;
-                    ReportTemperature();
-                    ReportHumidity();
-                    break;
-            case 1: TXCommand = Get_ExteriorTemperature1; break;
-            case 2: TXCommand = Get_ExteriorTemperature2; break;
-            case 3: TXCommand = Get_ExteriorHumidity1; break;
-            case 4: TXCommand = Get_ExteriorHumidity2; break;
-
-            case 5: TXCommand = Get_Radiator0Setpoint1; break;
-            case 6: TXCommand = Get_Radiator0Setpoint2; break;
-            case 7: TXCommand = Get_Radiator0Temperature1; break;
-            case 8: TXCommand = Get_Radiator0Temperature2; break;
-
-            case 9: TXCommand = Get_Radiator1Setpoint1; break;
-            case 10: TXCommand = Get_Radiator1Setpoint2; break;
-            case 11: TXCommand = Get_Radiator1Temperature1; break;
-            case 12: TXCommand = Get_Radiator1Temperature2; break;
-
-            case 13: TXCommand = Get_Radiator2Setpoint1; break;
-            case 14: TXCommand = Get_Radiator2Setpoint2; break;
-            case 15: TXCommand = Get_Radiator2Temperature1; break;
-            case 16: TXCommand = Get_Radiator2Temperature2; break;
-            /*
-            case 17: TXCommand = Get_Radiator3Setpoint1; break;
-            case 18: TXCommand = Get_Radiator3Setpoint2; break;
-            case 19: TXCommand = Get_Radiator3Temperature1; break;
-            case 20: TXCommand = Get_Radiator3Temperature2; break;
-
-            case 21: TXCommand = Get_Radiator4Setpoint1; break;
-            case 22: TXCommand = Get_Radiator4Setpoint2; break;
-            case 23: TXCommand = Get_Radiator4Temperature1; break;
-            case 24: TXCommand = Get_Radiator4Temperature2; break;
-
-            case 25: TXCommand = Get_Radiator5Setpoint1; break;
-            case 26: TXCommand = Get_Radiator5Setpoint2; break;
-            case 27: TXCommand = Get_Radiator5Temperature1; break;
-            case 28: TXCommand = Get_Radiator5Temperature2; break;
-            */
+        if (zwaveMessageCounter == 0) {
+            ReportTemperature();
+            ReportHumidity();
         }
+        TXCommand = zwaveMessageCounter + 1;
+
 #ifdef LOGGING_ACTIVE
         MY_SERIAL.print(" cmd = ");
         MY_SERIAL.println(TXCommand);
 #endif // LOGGING_ACTIVE
         ReportTXCommandValue(TXCommand, 0);
 
-        zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
-        ZWAVE_TIMER.DurationInMillis = (zwaveMessageCounter == 0) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
+        ZWAVE_TIMER.DurationInMillis = (zwaveMessageCounter == ZWAVE_MSG_COUNT - 1) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
         ZWAVE_RX_TIMER.Start();
+        zwaveTimerElapsed = false;
     }
 
     // Run the thermostat loop
