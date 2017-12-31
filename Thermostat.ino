@@ -169,10 +169,10 @@ void loop()
     if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
 
 #ifdef LOGGING_ACTIVE
-        MY_SERIAL.print("RXCmd: ");
-        MY_SERIAL.println(zrxCommand);
         MY_SERIAL.print("TXCmd: ");
         MY_SERIAL.println(TXCommand);
+        MY_SERIAL.print("RXCmd: ");
+        MY_SERIAL.println(zrxCommand);
 #endif // LOGGING_ACTIVE
         zwaveTimerElapsed = true;
         if (zrxCommand == TXCommand) {
