@@ -3,7 +3,6 @@
 *
 */
 
-#include "radiator.h"
 #include "globals.h"
 #include "zwave_communication.h"
 #include "zwave_communication.h"
@@ -45,7 +44,6 @@
 #include "oled_display.h"
 #include "ThermostatRemoteConfig.h"
 #include "zwave_communication.h"
-#include "radiator.h"
 
 
 // Custom sensor to retrieve temperature as a word (2 bytes)
@@ -79,7 +77,6 @@ PID PIDREG;
 // static PID_ATune atune;
 // static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 
-radiator_s Radiators[RADIATOR_COUNT];
 params_s Prm;
 
 ButtonActions buttonAction;
@@ -125,6 +122,7 @@ void loop()
 {
     loopStart = millis();
 
+    // Read local temperature & humidity sensor
     if (SENSOR_TIMER.IsElapsedRestart())
         ReadSensor();
 
