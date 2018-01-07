@@ -58,13 +58,12 @@ ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
 //                 1 channel to (get/)set the command value,
 //                 1 channel to get the real temperature,
 //                 1 channel to get the real humidity
-ZUNO_SETUP_CHANNELS(
-    ZUNO_SWITCH_MULTILEVEL(ZGetZtxCommand, ZSetZtxCommand)
-    , ZUNO_SWITCH_MULTILEVEL(ZGetZtxValue, ZSetZtxValue)
-    , ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue)
-    , ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue)
-    , ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature)
-    , ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(ZGetRealHumidity)
+ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetZtxCommand, ZSetZtxCommand),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetZtxValue, ZSetZtxValue),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue),
+                    ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature),
+                    ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(ZGetRealHumidity)
 );
 
 // Zwave associations: 1 group to set boiler relay on/off
@@ -73,23 +72,20 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 // Create objects
-static TimerClass ZWAVE_TIMER(ZWAVE_LONG_PERIOD);
-static TimerClass ZWAVE_RX_TIMER(ZWAVE_SHORT_PERIOD - 100);
+static TimerClass ZWAVE_RX_TIMER(0);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
 PID PIDREG;
 // static PID_ATune atune;
 // static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 
-radiator_s Radiators[6];
+radiator_s Radiators[RADIATOR_COUNT];
 params_s Prm;
 
 ButtonActions buttonAction;
-byte zwaveMessageCounter = 0;
 unsigned long loopStart;
 unsigned long loopTime;
 int TXCommand = 0;
-bool zwaveTimerElapsed = true;
 byte resetCnt = 0;
 
 #define MY_SERIAL   Serial
@@ -118,6 +114,7 @@ void setup()
 
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
+    ZWAVE_RX_TIMER.Start();
 }
 
 /**
@@ -164,7 +161,6 @@ void loop()
     // Refresh OLED display
     OledDisplay_DrawDisplay();
 
-
     // Process any received command / value ZWave input
     if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
 
@@ -173,14 +169,34 @@ void loop()
         MY_SERIAL.println(TXCommand);
         MY_SERIAL.print("RXCmd: ");
         MY_SERIAL.println(zrxCommand);
+        MY_SERIAL.print("RXVal: ");
+        MY_SERIAL.println(zrxValue);
 #endif // LOGGING_ACTIVE
-        zwaveTimerElapsed = true;
+
         if (zrxCommand == TXCommand) {
             if (zrxCommand != 0 && zrxCommand != 99) {
-                Remote_SetCommand(Commands(zrxCommand));
-                Remote_SetValue(zrxValue);
-                zwaveMessageCounter = (zwaveMessageCounter + 1) % ZWAVE_MSG_COUNT;
+                Remote_ProcessCommandValue(Commands(zrxCommand), zrxValue);
             }
+
+            // Update Zwave values
+            ZWAVE_RX_TIMER.DurationInMillis = (TXCommand == Get_Mode) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
+
+            TXCommand = (currentCommand % ZWAVE_MSG_COUNT) + 1;
+
+            if (TXCommand == Get_Mode) {
+                ReportTemperature();
+                ReportHumidity();
+            }
+
+            ReportTXCommandValue(TXCommand, 0);
+            ZWAVE_RX_TIMER.Start();
+#ifdef LOGGING_ACTIVE
+            MY_SERIAL.print("TXCmd: ");
+            MY_SERIAL.println(TXCommand);
+            MY_SERIAL.print("Timer duration: ");
+            MY_SERIAL.println(float(ZWAVE_RX_TIMER.DurationInMillis) / 1000);
+#endif // LOGGING_ACTIVE
+
         }
         else {
 #ifdef LOGGING_ACTIVE
@@ -195,37 +211,14 @@ void loop()
             //ReportRXCommandValue(rstId, rstId);
             ReportTXCommandValue(rstId, rstId);
             TXCommand = rstId;
+            ZWAVE_RX_TIMER.DurationInMillis = 2 * ZWAVE_SHORT_PERIOD;
             ZWAVE_RX_TIMER.Start();
-            zwaveTimerElapsed = false;
         }
-    }
-
-    // Update Zwave values
-    if (zwaveTimerElapsed) {
-#ifdef LOGGING_ACTIVE
-        MY_SERIAL.print("ZWave TX: cnt = ");
-        MY_SERIAL.print(zwaveMessageCounter);
-#endif // LOGGING_ACTIVE
-
-        if (zwaveMessageCounter == 0) {
-            ReportTemperature();
-            ReportHumidity();
-        }
-        TXCommand = zwaveMessageCounter + 1;
-
-#ifdef LOGGING_ACTIVE
-        MY_SERIAL.print(" cmd = ");
-        MY_SERIAL.println(TXCommand);
-#endif // LOGGING_ACTIVE
-        ReportTXCommandValue(TXCommand, 0);
-
-        ZWAVE_TIMER.DurationInMillis = (zwaveMessageCounter == ZWAVE_MSG_COUNT - 1) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
-        ZWAVE_RX_TIMER.Start();
-        zwaveTimerElapsed = false;
     }
 
     // Run the thermostat loop
-    Thermostat_Loop();
+    if (currentPage != OLED_PAGE_COUNT)
+        Thermostat_Loop();
 
     // Wait if needed
     loopTime = millis() - loopStart;
@@ -332,7 +325,6 @@ word ZGetRealHumidity()
 * @brief Universal handler for all the channels
 *
 * @remark See callback_data variable
-*         We use word params for all
 *         We use zero based index of the channel instead of typical
 *         Getter/Setter index of Z-Uno.
 *         See enum ZUNO_CHANNEL*_GETTER/ZUNO_CHANNEL*_SETTER in ZUNO_Definitions.h
@@ -354,7 +346,7 @@ void zunoCallback(void)
         
         case ZUNO_CHANNEL5_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
         case ZUNO_CHANNEL6_GETTER: callback_data.param.wParam = ZGetRealHumidity(); break;
-        
+
         default: break;
     }
 }
