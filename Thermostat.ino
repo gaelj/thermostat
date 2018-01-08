@@ -4,8 +4,6 @@
 */
 
 #include "globals.h"
-#include "zwave_communication.h"
-#include "zwave_communication.h"
 #include "button_control.h"
 #include "pinout.h"
 #include "sensor.h"
@@ -42,26 +40,23 @@
 #include "button.h"
 #include "button_control.h"
 #include "oled_display.h"
-#include "ThermostatRemoteConfig.h"
-#include "zwave_communication.h"
-
 
 // Custom sensor to retrieve temperature as a word (2 bytes)
 #define ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(GETTER) ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_TEMPERATURE, SENSOR_MULTILEVEL_SCALE_CELSIUS, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
 #define ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(GETTER)    ZUNO_SENSOR_MULTILEVEL (ZUNO_SENSOR_MULTILEVEL_TYPE_RELATIVE_HUMIDITY, SENSOR_MULTILEVEL_SCALE_PERCENTAGE_VALUE, SENSOR_MULTILEVEL_SIZE_TWO_BYTES, SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS, GETTER)
 
-ZUNO_SETUP_DEBUG_MODE(DEBUG_ON);
-
 // Zwave channels: 1 channel to get/set the command id,
 //                 1 channel to (get/)set the command value,
 //                 1 channel to get the real temperature,
 //                 1 channel to get the real humidity
-ZUNO_SETUP_CHANNELS(ZUNO_SWITCH_MULTILEVEL(ZGetZtxCommand, ZSetZtxCommand),
-                    ZUNO_SWITCH_MULTILEVEL(ZGetZtxValue, ZSetZtxValue),
-                    ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue),
-                    ZUNO_SWITCH_MULTILEVEL(ZGetZrxValue, ZSetZrxValue),
-                    ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetRealTemperature),
-                    ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(ZGetRealHumidity)
+ZUNO_SETUP_CHANNELS(ZUNO_SENSOR_MULTILEVEL_TEMPERATURE_WORD(ZGetSensorTemperature),
+                    ZUNO_SENSOR_MULTILEVEL_HUMIDITY_WORD(ZGetSensorHumidity),
+                    ZUNO_SWITCH_BINARY(ZGetBoilerState, ZSetBoilerState),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetSetpoint, ZSetSetpoint),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetMode, ZSetMode),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetExteriorTemperature, ZSetExteriorTemperature),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetExteriorHumidity, ZSetExteriorHumidity),
+                    ZUNO_SWITCH_MULTILEVEL(ZGetExteriorPressure, ZSetExteriorPressure)
 );
 
 // Zwave associations: 1 group to set boiler relay on/off
@@ -70,20 +65,19 @@ ZUNO_SETUP_ASSOCIATIONS(ZUNO_ASSOCIATION_GROUP_SET_VALUE);
 
 
 // Create objects
-static TimerClass ZWAVE_RX_TIMER(0);
+static TimerClass ZWAVE_REPORT_TIMER(ZWAVE_PERIOD);
 static TimerClass SENSOR_TIMER(READ_SENSOR_PERIOD);
 static TimerClass MODE_SET_DELAY_TIMER(MODE_SET_DELAY_PERIOD);
-PID PIDREG;
 // static PID_ATune atune;
 // static AutoPidClass AUTOPID(&pid, &atune, &SETTINGS, &MODE);
 
-params_s Prm;
+PID PIDREG;
+params_t Prm;
+zwave_values_t zwave_values;
 
 ButtonActions buttonAction;
 unsigned long loopStart;
 unsigned long loopTime;
-int TXCommand = 0;
-byte resetCnt = 0;
 
 #define MY_SERIAL   Serial
 
@@ -93,13 +87,11 @@ byte resetCnt = 0;
 */
 void setup()
 {
-
 #ifdef LOGGING_ACTIVE
     MY_SERIAL.begin(115200);
 #endif // LOGGING_ACTIVE
 
     Settings_LoadDefaults();
-    Remote_InitParameters();
     OledDisplay_Init();
     Thermostat_Init();
 
@@ -111,7 +103,13 @@ void setup()
 
     //AUTOPID.ApplySettings();
     //AUTOPID.SetAutoTune(1);
-    ZWAVE_RX_TIMER.Start();
+
+    Prm.CurrentThermostatMode = NoMode;
+    Prm.ExteriorTemperature = 0;
+    Prm.ExteriorHumidity = 0;
+    Prm.IlluminationPower = true;
+
+    zwave_values.Mode = 0;
 }
 
 /**
@@ -130,13 +128,14 @@ void loop()
     buttonAction = ReadButtons();
     if (buttonAction == Button12 || (!Prm.IlluminationPower && buttonAction != NoButtonAction)) {
         Prm.IlluminationPower = !Prm.IlluminationPower;
-        //LEDS.SetPower(Prm.IlluminationPower);
         OledDisplay_SetPower(Prm.IlluminationPower);
     }
     else if (buttonAction == Button1) {
         MODE_SET_DELAY_TIMER.Start();
-        ThermostatMode newMode = ThermostatMode((byte(Prm.CurrentThermostatMode) + 1) % THERMOSTAT_MODE_COUNT);
-        Prm.CurrentThermostatMode = newMode;
+        zwave_values.Mode = ((zwave_values.Mode + 1) % THERMOSTAT_MODE_COUNT);
+        if (zwave_values.Mode == 0)
+            zwave_values.Mode = 1;
+        Thermostat_SetMode(ThermostatMode(zwave_values.Mode));
     }
     else if (buttonAction == Button2) {
         OledDisplay_ShowNextPage();
@@ -144,7 +143,7 @@ void loop()
 
     // Wait before reporting ZWave, to end only the final selection when "cycling" through modes
     if (MODE_SET_DELAY_TIMER.IsActive && MODE_SET_DELAY_TIMER.IsElapsed()) {
-        ReportTXCommandValue(Set_Mode, EncodeMode(Prm.CurrentThermostatMode));
+        zunoSendReport(ZUNO_REPORT_MODE);
     }
 
     // Set LED blinking if boiler is on
@@ -159,59 +158,52 @@ void loop()
     // Refresh OLED display
     OledDisplay_DrawDisplay();
 
-    // Process any received command / value ZWave input
-    if (ZWAVE_RX_TIMER.IsActive && ZWAVE_RX_TIMER.IsElapsed()) {
+    // Report sensor values
+    if (ZWAVE_REPORT_TIMER.IsElapsedRestart()) {
+        zwave_values.SensorTemperature = EncodeSensorReading(SensorTemperature);
+        zwave_values.SensorHumidity = EncodeSensorReading(SensorHumidity);
+        zunoSendReport(ZUNO_REPORT_TEMP);
+        zunoSendReport(ZUNO_REPORT_HUMIDITY);
 
+        if (zwave_values.Mode == 0) {
 #ifdef LOGGING_ACTIVE
-        MY_SERIAL.print("TXCmd: ");
-        MY_SERIAL.println(TXCommand);
-        MY_SERIAL.print("RXCmd: ");
-        MY_SERIAL.println(zrxCommand);
-        MY_SERIAL.print("RXVal: ");
-        MY_SERIAL.println(zrxValue);
+            Serial.println("Req Mode 99");
 #endif // LOGGING_ACTIVE
-
-        if (zrxCommand == TXCommand) {
-            if (zrxCommand != 0 && zrxCommand != 99) {
-                Remote_ProcessCommandValue(Commands(zrxCommand), zrxValue);
-            }
-
-            // Update Zwave values
-            ZWAVE_RX_TIMER.DurationInMillis = (TXCommand == Get_Mode) ? ZWAVE_LONG_PERIOD : ZWAVE_SHORT_PERIOD;
-
-            TXCommand = (currentCommand % ZWAVE_MSG_COUNT) + 1;
-
-            if (TXCommand == Get_Mode) {
-                ReportTemperature();
-                ReportHumidity();
-            }
-
-            ReportTXCommandValue(TXCommand, 0);
-            ZWAVE_RX_TIMER.Start();
-#ifdef LOGGING_ACTIVE
-            MY_SERIAL.print("TXCmd: ");
-            MY_SERIAL.println(TXCommand);
-            MY_SERIAL.print("Timer duration: ");
-            MY_SERIAL.println(float(ZWAVE_RX_TIMER.DurationInMillis) / 1000);
-#endif // LOGGING_ACTIVE
-
+            zwave_values.Mode == 99;
+            zunoSendReport(ZUNO_REPORT_MODE);
         }
-        else {
+        else if (zwave_values.Mode == 99) {
 #ifdef LOGGING_ACTIVE
-            MY_SERIAL.println("RST");
+            Serial.println("Req Mode 0");
 #endif // LOGGING_ACTIVE
-            int rstId = 0;
-            resetCnt++;
-            if (resetCnt > 1) {
-                rstId = 99;
-                resetCnt = 0;
-            }
-            //ReportRXCommandValue(rstId, rstId);
-            ReportTXCommandValue(rstId, rstId);
-            TXCommand = rstId;
-            ZWAVE_RX_TIMER.DurationInMillis = 2 * ZWAVE_SHORT_PERIOD;
-            ZWAVE_RX_TIMER.Start();
+            zwave_values.Mode == 0;
+            zunoSendReport(ZUNO_REPORT_MODE);
         }
+        if (zwave_values.ExteriorTemperature == 0) {
+            zunoSendReport(ZUNO_REPORT_EXT_TEMP);
+            zunoSendReport(ZUNO_REPORT_EXT_HUM);
+            zunoSendReport(ZUNO_REPORT_EXT_PRESS);
+        }
+    }
+
+    // Process any received Zwave values
+    if (zwave_values.BoilerState != CurrentBoilerState) {
+        SetBoilerState(zwave_values.BoilerState);
+    }
+    if (DecodeTemp(zwave_values.Setpoint) != TheSettings.CurrentSetPoint) {
+        Thermostat_SetSetPoint(DecodeTemp(zwave_values.Setpoint));
+    }
+    if (ThermostatMode(zwave_values.Mode) != Prm.CurrentThermostatMode) {
+        Thermostat_SetMode(ThermostatMode(zwave_values.Mode));
+    }
+    if (DecodeTemp(zwave_values.ExteriorTemperature) != Prm.ExteriorTemperature) {
+        Prm.ExteriorTemperature = DecodeTemp(zwave_values.ExteriorTemperature);
+    }
+    if (DecodeHumidity(zwave_values.ExteriorHumidity) != Prm.ExteriorHumidity) {
+        Prm.ExteriorHumidity = DecodeHumidity(zwave_values.ExteriorHumidity);
+    }
+    if (DecodePressure(zwave_values.ExteriorPressure) != Prm.ExteriorPressure) {
+        Prm.ExteriorPressure = DecodePressure(zwave_values.ExteriorPressure);
     }
 
     // Run the thermostat loop
@@ -224,99 +216,76 @@ void loop()
 }
 
 
-
-/**
-* @brief The PC requests the Zuno TX command
-*
-*/
-byte ZGetZtxCommand()
+byte ZGetBoilerState()
 {
-    return ztxCommand;
+    return zwave_values.BoilerState;
+}
+void ZSetBoilerState(byte value)
+{
+    zwave_values.BoilerState = value;
 }
 
-/**
-* @brief The PC requests the Zuno TX value
-*
-*/
-byte ZGetZtxValue()
+byte ZGetSetpoint()
 {
-    return ztxValue;
+    return zwave_values.Setpoint;
+}
+void ZSetSetpoint(byte value)
+{
+    zwave_values.Setpoint = value;
 }
 
-/**
-* @brief The Zuno gets a Zuno TX command from the PC (shouldn't happen)
-*
-*/
-void ZSetZtxCommand(byte value)
+byte ZGetMode()
 {
-    ztxCommand = value;
+    return zwave_values.Mode;
+}
+void ZSetMode(byte value)
+{
+    zwave_values.Mode = value;
 }
 
-/**
-* @brief The Zuno gets a Zuno TX value from the PC (shouldn't happen)
-*
-*/
-void ZSetZtxValue(byte value)
+byte ZGetExteriorTemperature()
 {
-    ztxValue = value;
+    return zwave_values.ExteriorTemperature;
+}
+void ZSetExteriorTemperature(byte value)
+{
+    zwave_values.ExteriorTemperature = value;
 }
 
-
-
-/**
-* @brief The PC requests the Zuno RX command (shouldn't happen)
-*
-*/
-byte ZGetZrxCommand()
+byte ZGetExteriorHumidity()
 {
-    return zrxCommand;
+    return zwave_values.ExteriorHumidity;
+}
+void ZSetExteriorHumidity(byte value)
+{
+    zwave_values.ExteriorHumidity = value;
 }
 
-/**
-* @brief The PC requests the Zuno RX value (shouldn't happen)
-*
-*/
-byte ZGetZrxValue()
+byte ZGetExteriorPressure()
 {
-    return zrxValue;
+    return zwave_values.ExteriorPressure;
 }
-
-/**
-* @brief The Zuno gets a Zuno RX command from the PC
-*
-*/
-void ZSetZrxCommand(byte value)
+void ZSetExteriorPressure(byte value)
 {
-    zrxCommand = value;
+    zwave_values.ExteriorPressure = value;
 }
-
-/**
-* @brief The Zuno gets a Zuno RX value from the PC
-*
-*/
-void ZSetZrxValue(byte value)
-{
-    zrxValue = value;
-}
-
-
 
 /**
 * @brief Zwave Getter for Real Temperature
 *
 */
-word ZGetRealTemperature()
+word ZGetSensorTemperature()
 {
-    return EncodeSensorReading(SensorTemperature);
+    return zwave_values.SensorTemperature;
 }
 
 /**
 * @brief Zwave Getter for Real Humidity
 *
 */
-word ZGetRealHumidity()
+word ZGetSensorHumidity()
 {
-    return EncodeSensorReading(SensorHumidity);
+    return zwave_values.SensorHumidity;
 }
 
 /**
@@ -330,20 +299,27 @@ word ZGetRealHumidity()
 void zunoCallback(void)
 {
     switch (callback_data.type) {
-        case ZUNO_CHANNEL1_GETTER: callback_data.param.bParam = ZGetZtxCommand(); break;
-        case ZUNO_CHANNEL1_SETTER: ZSetZtxCommand(callback_data.param.bParam); break;
+        case ZUNO_CHANNEL1_GETTER: callback_data.param.wParam = ZGetSensorTemperature(); break;
 
-        case ZUNO_CHANNEL2_GETTER: callback_data.param.bParam = ZGetZtxValue(); break;
-        case ZUNO_CHANNEL2_SETTER: ZSetZtxValue(callback_data.param.bParam); break;
+        case ZUNO_CHANNEL2_GETTER: callback_data.param.wParam = ZGetSensorHumidity(); break;
 
-        case ZUNO_CHANNEL3_GETTER: callback_data.param.bParam = ZGetZrxCommand(); break;
-        case ZUNO_CHANNEL3_SETTER: ZSetZrxCommand(callback_data.param.bParam); break;
+        case ZUNO_CHANNEL3_GETTER: callback_data.param.bParam = ZGetBoilerState(); break;
+        case ZUNO_CHANNEL3_SETTER: ZSetBoilerState(callback_data.param.bParam); break;
 
-        case ZUNO_CHANNEL4_GETTER: callback_data.param.bParam = ZGetZrxValue(); break;
-        case ZUNO_CHANNEL4_SETTER: ZSetZrxValue(callback_data.param.bParam); break;
-        
-        case ZUNO_CHANNEL5_GETTER: callback_data.param.wParam = ZGetRealTemperature(); break;
-        case ZUNO_CHANNEL6_GETTER: callback_data.param.wParam = ZGetRealHumidity(); break;
+        case ZUNO_CHANNEL4_GETTER: callback_data.param.bParam = ZGetSetpoint(); break;
+        case ZUNO_CHANNEL4_SETTER: ZSetSetpoint(callback_data.param.bParam); break;
+
+        case ZUNO_CHANNEL5_GETTER: callback_data.param.bParam = ZGetMode(); break;
+        case ZUNO_CHANNEL5_SETTER: ZSetMode(callback_data.param.bParam); break;
+
+        case ZUNO_CHANNEL6_GETTER: callback_data.param.bParam = ZGetExteriorTemperature(); break;
+        case ZUNO_CHANNEL6_SETTER: ZSetExteriorTemperature(callback_data.param.bParam); break;
+
+        case ZUNO_CHANNEL7_GETTER: callback_data.param.bParam = ZGetExteriorHumidity(); break;
+        case ZUNO_CHANNEL7_SETTER: ZSetExteriorHumidity(callback_data.param.bParam); break;
+
+        case ZUNO_CHANNEL8_GETTER: callback_data.param.bParam = ZGetExteriorPressure(); break;
+        case ZUNO_CHANNEL8_SETTER: ZSetExteriorPressure(callback_data.param.bParam); break;
 
         default: break;
     }
