@@ -193,7 +193,7 @@ void loop()
     if (DecodeTemp(zwave_values.Setpoint) != TheSettings.CurrentSetPoint) {
         Thermostat_SetSetPoint(DecodeTemp(zwave_values.Setpoint));
     }
-    if (ThermostatMode(zwave_values.Mode) != Prm.CurrentThermostatMode) {
+    if (zwave_values.Mode < 99 && ThermostatMode(zwave_values.Mode) != Prm.CurrentThermostatMode) {
         Thermostat_SetMode(ThermostatMode(zwave_values.Mode));
     }
     if (DecodeTemp(zwave_values.ExteriorTemperature) != Prm.ExteriorTemperature) {
